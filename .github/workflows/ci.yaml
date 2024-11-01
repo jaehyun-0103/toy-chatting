@@ -1,0 +1,53 @@
+name: CI/CD  # 워크플로우 이름
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때 트리거
+  pull_request:
+    branches:
+      - main  # main 브랜치에 대한 PR이 생성될 때 트리거
+
+jobs:
+  build-backend:  # 백엔드 빌드 작업
+    runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
+    steps:
+      - name: Checkout code  # 코드 체크아웃 단계
+        uses: actions/checkout@v2  # 코드 리포지토리를 체크아웃
+
+      - name: Set up JDK 17  # JDK 17 설정 단계
+        uses: actions/setup-java@v2  # Java 설정 액션 사용
+        with:
+          java-version: '17'  # 사용할 Java 버전
+          distribution: 'temurin'  # JDK 배포판 설정
+
+      - name: Build backend  # 백엔드 애플리케이션 빌드 단계
+        run: |
+          cd backend  # backend 디렉토리로 이동
+          docker build -t your-dockerhub-username/backend:latest .  # Docker 이미지 빌드
+
+  build-frontend:  # 프론트엔드 빌드 작업
+    runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
+    steps:
+      - name: Checkout code  # 코드 체크아웃 단계
+        uses: actions/checkout@v2  # 코드 리포지토리를 체크아웃
+
+      - name: Set up Node.js  # Node.js 설정 단계
+        uses: actions/setup-node@v2  # Node.js 설정 액션 사용
+        with:
+          node-version: '20'  # 사용할 Node.js 버전
+
+      - name: Install frontend dependencies  # 프론트엔드 의존성 설치 단계
+        run: |
+          cd frontend  # frontend 디렉토리로 이동
+          npm install  # 의존성 설치
+
+      - name: Run frontend tests  # 프론트엔드 테스트 실행 단계
+        run: |
+          cd frontend  # frontend 디렉토리로 이동
+          npm test  # 테스트 실행
+
+      - name: Build frontend  # 프론트엔드 애플리케이션 빌드 단계
+        run: |
+          cd frontend  # frontend 디렉토리로 이동
+          npm run build  # 프로덕션 빌드 실행
