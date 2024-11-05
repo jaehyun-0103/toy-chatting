@@ -28,4 +28,9 @@ public class ChatRoomMember {
 
     @Column(name = "joined_at", updatable = false)
     private LocalDateTime joinedAt = LocalDateTime.now();
+
+    @PrePersist
+    public void prePersist() {
+        this.joinedAt = LocalDateTime.now();
+    }
 }

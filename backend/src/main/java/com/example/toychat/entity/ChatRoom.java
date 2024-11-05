@@ -45,4 +45,15 @@ public class ChatRoom {
 
     @OneToOne(mappedBy = "chatRoom", cascade = CascadeType.ALL)
     private InviteCode inviteCode;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
