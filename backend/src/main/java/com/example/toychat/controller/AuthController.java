@@ -25,4 +25,10 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody AuthDTO authDTO) {
         return authService.login(authDTO);
     }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteUser(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
+        return authService.deleteUser(token);
+    }
 }
