@@ -93,4 +93,25 @@ public class AuthService {
                 .authorities("USER") // 권한 설정
                 .build(); // UserDetails 객체 반환
     }
+
+    /**
+     * JWT 인증을 통해 사용자 탈퇴를 처리합니다.
+     * @param token JWT 토큰
+     * @return 사용자 탈퇴 결과 응답
+     */
+    public ResponseEntity<?> deleteUser(String token) {
+        // JWT에서 사용자 이름 추출
+        String username = jwtUtil.extractUsername(token);
+
+        // 사용자 찾기
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+
+        User user = userOpt.get(); // 사용자 객체 가져오기
+        userRepository.delete(user); // 사용자 삭제
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204 No Content 응답
+    }
 }
