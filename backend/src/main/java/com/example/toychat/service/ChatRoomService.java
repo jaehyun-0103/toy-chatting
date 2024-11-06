@@ -4,6 +4,7 @@ import com.example.toychat.dto.request.ChatRoomJoinRequestDTO;
 import com.example.toychat.dto.response.ChatRoomCreateResponseDTO;
 import com.example.toychat.dto.response.ChatRoomJoinResponseDTO;
 import com.example.toychat.dto.request.ChatRoomCreateRequestDTO;
+import com.example.toychat.dto.response.ChatRoomListResponseDTO;
 
 import com.example.toychat.entity.ChatRoom;
 import com.example.toychat.entity.ChatRoomMember;
@@ -12,6 +13,7 @@ import com.example.toychat.entity.User;
 import com.example.toychat.repository.ChatRoomMemberRepository;
 import com.example.toychat.repository.ChatRoomRepository;
 import com.example.toychat.repository.UserRepository;
+
 import com.example.toychat.security.JwtUtil;
 
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +22,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -124,5 +128,78 @@ public class ChatRoomService {
 
         // 참여 성공 응답
         return ResponseEntity.ok(new ChatRoomJoinResponseDTO("Joined chat room successfully"));
+    }
+
+    /**
+     * 전체 채팅방 목록을 조회합니다.
+     * @param token JWT 토큰
+     * @return 전체 채팅방 목록
+     */
+    public ResponseEntity<List<ChatRoomListResponseDTO>> getAllChatRooms(String token) {
+        // JWT에서 사용자 이름 추출
+        String username = jwtUtil.extractUsername(token);
+
+        // 사용자 찾기
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(null);
+        }
+
+        // 모든 채팅방 조회
+        List<ChatRoom> chatRooms = chatRoomRepository.findAll();
+
+        // 채팅방 정보와 참여 인원 수를 DTO로 변환
+        List<ChatRoomListResponseDTO> responseDTOs = chatRooms.stream()
+                .map(chatRoom -> {
+                    // 채팅방에 참여한 인원 수 계산
+                    int currentMembers = chatRoomMemberRepository.countByChatRoom(chatRoom);
+                    return new ChatRoomListResponseDTO(
+                            chatRoom.getId(),
+                            chatRoom.getTitle(),
+                            chatRoom.getMaxMembers(),
+                            chatRoom.isPrivate(),
+                            currentMembers
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responseDTOs);
+    }
+
+    /**
+     * 사용자가 참여한 채팅방 목록을 조회합니다.
+     * @param token JWT 토큰
+     * @return 사용자가 참여한 채팅방 목록
+     */
+    public ResponseEntity<List<ChatRoomListResponseDTO>> getMyChatRooms(String token) {
+        // JWT에서 사용자 이름 추출
+        String username = jwtUtil.extractUsername(token);
+
+        // 사용자 찾기
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(null);
+        }
+        User user = userOpt.get();
+
+        // 사용자가 참여한 채팅방 목록 조회
+        List<ChatRoom> chatRooms = chatRoomMemberRepository.findChatRoomsByUser(user);
+
+        // 채팅방 정보와 참여 인원 수를 DTO로 변환
+        List<ChatRoomListResponseDTO> responseDTOs = chatRooms.stream()
+                .map(chatRoom -> {
+                    // 채팅방에 참여한 인원 수 계산
+                    int currentMembers = chatRoomMemberRepository.countByChatRoom(chatRoom);
+                    return new ChatRoomListResponseDTO(
+                            chatRoom.getId(),
+                            chatRoom.getTitle(),
+                            chatRoom.getMaxMembers(),
+                            chatRoom.isPrivate(),
+                            currentMembers
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(responseDTOs);
     }
 }
