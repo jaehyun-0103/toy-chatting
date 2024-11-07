@@ -17,4 +17,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
 
     @Query("SELECT cr FROM ChatRoom cr JOIN cr.members crm WHERE crm.user = :user")
     List<ChatRoom> findChatRoomsByUser(User user); // 사용자가 참여한 채팅방 목록 조회
+
+    List<ChatRoomMember> findByChatRoom(ChatRoom chatRoom); // 특정 채팅방의 멤버 목록 조회
+
+    void deleteByChatRoomAndUser(ChatRoom chatRoom, User user); // 특정 채팅방과 사용자로 회원 삭제
 }

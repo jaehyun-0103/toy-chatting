@@ -6,6 +6,7 @@ import com.example.toychat.dto.response.ChatRoomJoinResponseDTO;
 import com.example.toychat.dto.request.ChatRoomJoinRequestDTO;
 import com.example.toychat.dto.response.ChatRoomListResponseDTO;
 
+import com.example.toychat.dto.response.ChatRoomMemberResponseDTO;
 import com.example.toychat.service.ChatRoomService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,5 +54,23 @@ public class ChatRoomController {
             @RequestHeader("Authorization") String authorizationHeader) {
         String token = authorizationHeader.substring(7); // "Bearer " 제거
         return chatRoomService.getMyChatRooms(token);
+    }
+
+    // 채팅방의 멤버 목록을 조회
+    @GetMapping("/{chatroom_id}/members")
+    public ResponseEntity<List<ChatRoomMemberResponseDTO>> getChatRoomMembers(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable("chatroom_id") Long chatroomId) {
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
+        return chatRoomService.getChatRoomMembers(token, chatroomId);
+    }
+
+    // 채팅방 탈퇴 및 삭제
+    @DeleteMapping("/{chatroom_id}/delete")
+    public ResponseEntity<String> leaveOrDeleteChatRoom(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable("chatroom_id") Long chatroomId) {
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
+        return chatRoomService.leaveOrDeleteChatRoom(token, chatroomId);
     }
 }
