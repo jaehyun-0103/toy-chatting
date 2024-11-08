@@ -33,5 +33,6 @@ public class InviteCode {
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        this.expirationDate = this.createdAt.plusHours(1); // createdAt + 1h
     }
 }
