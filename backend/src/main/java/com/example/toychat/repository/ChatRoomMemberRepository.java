@@ -15,6 +15,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
 
     int countByChatRoom(ChatRoom chatRoom); // 특정 채팅방에 참여한 인원 수 계산
 
+    boolean existsByChatRoomAndUser(ChatRoom chatRoom, User user); // 사용자 존재 여부 확인
+
     @Query("SELECT cr FROM ChatRoom cr JOIN cr.members crm WHERE crm.user = :user")
     List<ChatRoom> findChatRoomsByUser(User user); // 사용자가 참여한 채팅방 목록 조회
 
