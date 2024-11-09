@@ -49,7 +49,7 @@ public class InviteCodeControllerTest {
         InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("Invite code generated successfully");
 
         when(inviteCodeService.createInviteCode(any(String.class), any(InviteCodeCreateRequestDTO.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(responseDTO));  // 수정된 부분
+                .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(responseDTO));
 
         mockMvc.perform(post("/api/invite/create")
                         .header("Authorization", "Bearer some_valid_token")
@@ -67,13 +67,13 @@ public class InviteCodeControllerTest {
         InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("You are not authorized to generate an invite code for this chat room.");
 
         when(inviteCodeService.createInviteCode(any(String.class), any(InviteCodeCreateRequestDTO.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).body(responseDTO));  // 수정된 부분
+                .thenReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).body(responseDTO));
 
         mockMvc.perform(post("/api/invite/create")
                         .header("Authorization", "Bearer some_valid_token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"chatroomId\": 1}"))
-                .andExpect(status().isForbidden())  // 수정된 부분
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("You are not authorized to generate an invite code for this chat room."));
     }
 
@@ -85,13 +85,13 @@ public class InviteCodeControllerTest {
         InviteCodeJoinResponseDTO responseDTO = new InviteCodeJoinResponseDTO("Joined chat room successfully using invite code");
 
         when(inviteCodeService.joinChatRoomUsingInviteCode(any(String.class), any(InviteCodeJoinRequestDTO.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.OK).body(responseDTO));  // 수정된 부분
+                .thenReturn(ResponseEntity.status(HttpStatus.OK).body(responseDTO));
 
         mockMvc.perform(post("/api/invite/join")
                         .header("Authorization", "Bearer some_valid_token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteCode\": \"123456\"}"))
-                .andExpect(status().isOk())  // 수정된 부분
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Joined chat room successfully using invite code"));
     }
 
@@ -103,13 +103,13 @@ public class InviteCodeControllerTest {
         InviteCodeJoinResponseDTO responseDTO = new InviteCodeJoinResponseDTO("Invalid or expired invite code.");
 
         when(inviteCodeService.joinChatRoomUsingInviteCode(any(String.class), any(InviteCodeJoinRequestDTO.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseDTO));  // 수정된 부분
+                .thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseDTO));
 
         mockMvc.perform(post("/api/invite/join")
                         .header("Authorization", "Bearer some_valid_token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"inviteCode\": \"000000\"}"))
-                .andExpect(status().isNotFound())  // 수정된 부분
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Invalid or expired invite code."));
     }
 }
