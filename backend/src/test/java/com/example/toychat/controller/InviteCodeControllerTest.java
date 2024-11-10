@@ -3,8 +3,8 @@ package com.example.toychat.controller;
 import com.example.toychat.dto.request.InviteCodeCreateRequestDTO;
 import com.example.toychat.dto.request.InviteCodeJoinRequestDTO;
 import com.example.toychat.dto.response.InviteCodeCreateResponseDTO;
-import com.example.toychat.dto.response.InviteCodeJoinResponseDTO;
 
+import com.example.toychat.dto.response.ResponseDTO;
 import com.example.toychat.service.InviteCodeService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +46,7 @@ public class InviteCodeControllerTest {
         InviteCodeCreateRequestDTO requestDTO = new InviteCodeCreateRequestDTO();
         requestDTO.setChatroomId(1L);
 
-        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("Invite code generated successfully");
+        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("Invite code generated successfully", any(String.class));
 
         when(inviteCodeService.createInviteCode(any(String.class), any(InviteCodeCreateRequestDTO.class)))
                 .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(responseDTO));
@@ -64,7 +64,7 @@ public class InviteCodeControllerTest {
         InviteCodeCreateRequestDTO requestDTO = new InviteCodeCreateRequestDTO();
         requestDTO.setChatroomId(1L);
 
-        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("You are not authorized to generate an invite code for this chat room.");
+        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("You are not authorized to generate an invite code for this chat room.", any(String.class));
 
         when(inviteCodeService.createInviteCode(any(String.class), any(InviteCodeCreateRequestDTO.class)))
                 .thenReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).body(responseDTO));
@@ -82,9 +82,9 @@ public class InviteCodeControllerTest {
         InviteCodeJoinRequestDTO requestDTO = new InviteCodeJoinRequestDTO();
         requestDTO.setInviteCode("123456");
 
-        InviteCodeJoinResponseDTO responseDTO = new InviteCodeJoinResponseDTO("Joined chat room successfully using invite code");
+        ResponseDTO responseDTO = new ResponseDTO("Joined chat room successfully using invite code");
 
-        when(inviteCodeService.joinChatRoomUsingInviteCode(any(String.class), any(InviteCodeJoinRequestDTO.class)))
+        when(inviteCodeService.joinByInviteCode(any(String.class), any(InviteCodeJoinRequestDTO.class)))
                 .thenReturn(ResponseEntity.status(HttpStatus.OK).body(responseDTO));
 
         mockMvc.perform(post("/api/invite/join")
@@ -100,9 +100,9 @@ public class InviteCodeControllerTest {
         InviteCodeJoinRequestDTO requestDTO = new InviteCodeJoinRequestDTO();
         requestDTO.setInviteCode("000000");
 
-        InviteCodeJoinResponseDTO responseDTO = new InviteCodeJoinResponseDTO("Invalid or expired invite code.");
+        ResponseDTO responseDTO = new ResponseDTO("Invalid or expired invite code.");
 
-        when(inviteCodeService.joinChatRoomUsingInviteCode(any(String.class), any(InviteCodeJoinRequestDTO.class)))
+        when(inviteCodeService.joinByInviteCode(any(String.class), any(InviteCodeJoinRequestDTO.class)))
                 .thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseDTO));
 
         mockMvc.perform(post("/api/invite/join")

@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class InviteCodeJoinResponseDTO {
+public class ResponseDTO {
 
     private String message;
 }

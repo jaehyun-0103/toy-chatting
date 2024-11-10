@@ -10,11 +10,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ChatRoomCreateResponseDTO {
 
+    private String message;
+
     @JsonProperty("chatroom_id")
     private Long chatroomId;
 
     @JsonProperty("creator_id")
     private Long creatorId;
-
-    private String message;
 }

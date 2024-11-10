@@ -18,6 +18,7 @@ public class JwtUtil {
 
     /**
      * 사용자 이름을 기반으로 JWT를 생성합니다.
+     *
      * @param username 사용자 이름
      * @return 생성된 JWT 문자열
      */
@@ -28,7 +29,8 @@ public class JwtUtil {
 
     /**
      * 주어진 클레임과 주제를 기반으로 JWT를 생성합니다.
-     * @param claims JWT에 포함될 클레임
+     *
+     * @param claims  JWT에 포함될 클레임
      * @param subject JWT의 주제 (사용자 이름 등)
      * @return 생성된 JWT 문자열
      */
@@ -44,7 +46,8 @@ public class JwtUtil {
 
     /**
      * JWT의 유효성을 검사합니다.
-     * @param token JWT 문자열
+     *
+     * @param token    JWT 문자열
      * @param username 사용자 이름
      * @return JWT가 유효한 경우 true, 그렇지 않은 경우 false
      */
@@ -55,6 +58,7 @@ public class JwtUtil {
 
     /**
      * JWT에서 사용자 이름을 추출합니다.
+     *
      * @param token JWT 문자열
      * @return 추출된 사용자 이름
      */
@@ -64,6 +68,7 @@ public class JwtUtil {
 
     /**
      * JWT에서 모든 클레임을 추출합니다.
+     *
      * @param token JWT 문자열
      * @return Claims 객체
      */
@@ -77,6 +82,7 @@ public class JwtUtil {
 
     /**
      * JWT의 만료 여부를 확인합니다.
+     *
      * @param token JWT 문자열
      * @return 만료된 경우 true, 그렇지 않은 경우 false
      */
