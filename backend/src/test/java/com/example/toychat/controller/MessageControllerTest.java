@@ -45,7 +45,7 @@ public class MessageControllerTest {
     }
 
     @Test
-    void sendMessage_ShouldReturn201_WhenMessageIsSentSuccessfully() throws Exception {
+    void testSendMessage() throws Exception {
         Long chatroomId = 1L;
         MessageSendRequestDTO requestDTO = new MessageSendRequestDTO("Hello, World!");
         MessageSendResponseDTO responseDTO = new MessageSendResponseDTO("Message sent successfully", 1L);
@@ -58,14 +58,14 @@ public class MessageControllerTest {
                         .contentType("application/json")
                         .content("{\"content\":\"Hello, World!\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.message_id").value(1))
                 .andExpect(jsonPath("$.message").value("Message sent successfully"));
 
         verify(messageService, times(1)).sendMessage(any(String.class), any(Long.class), eq(requestDTO));
     }
 
     @Test
-    void getMessages_ShouldReturn200_WhenMessagesAreRetrieved() throws Exception {
+    void testGetMessages() throws Exception {
         Long chatroomId = 1L;
         MessageResponseDTO message1 = new MessageResponseDTO(1L, "user1", "Hello", LocalDateTime.parse("2024-11-09T12:00:00"));
         MessageResponseDTO message2 = new MessageResponseDTO(2L, "user2", "Hi", LocalDateTime.parse("2024-11-09T12:05:00"));
@@ -84,7 +84,7 @@ public class MessageControllerTest {
     }
 
     @Test
-    void updateMessage_ShouldReturn200_WhenMessageIsUpdatedSuccessfully() throws Exception {
+    void testUpdateMessage() throws Exception {
         Long chatroomId = 1L;
         Long messageId = 1L;
         MessageUpdateRequestDTO requestDTO = new MessageUpdateRequestDTO("Updated Message");
@@ -104,7 +104,7 @@ public class MessageControllerTest {
     }
 
     @Test
-    void sendMessage_ShouldReturn400_WhenMessageSendFails() throws Exception {
+    void testSendMessage_Failure_UnauthorizedUser() throws Exception {
         Long chatroomId = 1L;
         MessageSendRequestDTO requestDTO = new MessageSendRequestDTO("Hello, World!");
 

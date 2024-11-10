@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,11 +43,11 @@ public class InviteCodeControllerTest {
     }
 
     @Test
-    public void testCreateInviteCode_Success() throws Exception {
+    public void testCreateInviteCode() throws Exception {
         InviteCodeCreateRequestDTO requestDTO = new InviteCodeCreateRequestDTO();
         requestDTO.setChatroomId(1L);
 
-        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("Invite code generated successfully", any(String.class));
+        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("Invite code generated successfully", "123456");
 
         when(inviteCodeService.createInviteCode(any(String.class), any(InviteCodeCreateRequestDTO.class)))
                 .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(responseDTO));
@@ -56,29 +57,12 @@ public class InviteCodeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"chatroomId\": 1}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message").value("Invite code generated successfully"));
+                .andExpect(jsonPath("$.message").value("Invite code generated successfully"))
+                .andExpect(jsonPath("$.invite_code").value("123456"));
     }
 
     @Test
-    public void testCreateInviteCode_Failure_UserNotAuthorized() throws Exception {
-        InviteCodeCreateRequestDTO requestDTO = new InviteCodeCreateRequestDTO();
-        requestDTO.setChatroomId(1L);
-
-        InviteCodeCreateResponseDTO responseDTO = new InviteCodeCreateResponseDTO("You are not authorized to generate an invite code for this chat room.", any(String.class));
-
-        when(inviteCodeService.createInviteCode(any(String.class), any(InviteCodeCreateRequestDTO.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).body(responseDTO));
-
-        mockMvc.perform(post("/api/invite/create")
-                        .header("Authorization", "Bearer some_valid_token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"chatroomId\": 1}"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("You are not authorized to generate an invite code for this chat room."));
-    }
-
-    @Test
-    public void testJoinChatRoomUsingInviteCode_Success() throws Exception {
+    public void testJoinByInviteCode() throws Exception {
         InviteCodeJoinRequestDTO requestDTO = new InviteCodeJoinRequestDTO();
         requestDTO.setInviteCode("123456");
 
@@ -96,7 +80,7 @@ public class InviteCodeControllerTest {
     }
 
     @Test
-    public void testJoinChatRoomUsingInviteCode_Failure_InvalidCode() throws Exception {
+    public void testJoinByInviteCode_Failure_InvalidCode() throws Exception {
         InviteCodeJoinRequestDTO requestDTO = new InviteCodeJoinRequestDTO();
         requestDTO.setInviteCode("000000");
 

@@ -40,9 +40,9 @@ class ChatRoomControllerTest {
     }
 
     @Test
-    void testCreateChatRoom_Success() throws Exception {
+    void testCreateChatRoom() throws Exception {
         ChatRoomCreateRequestDTO requestDTO = new ChatRoomCreateRequestDTO("Test Room", 10, false);
-        ChatRoomCreateResponseDTO responseDTO = new ChatRoomCreateResponseDTO("Chat room created successfully", 1L, 1L);
+        ChatRoomCreateResponseDTO responseDTO = new ChatRoomCreateResponseDTO("Chatting room created successfully", 1L, 1L);
 
         when(chatRoomService.createChatRoom(anyString(), any(ChatRoomCreateRequestDTO.class)))
                 .thenReturn(new ResponseEntity<>(responseDTO, HttpStatus.CREATED));
@@ -54,14 +54,13 @@ class ChatRoomControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.chatroom_id").value(1L))
                 .andExpect(jsonPath("$.creator_id").value(1L))
-                .andExpect(jsonPath("$.message").value("Chat room created successfully"));
+                .andExpect(jsonPath("$.message").value("Chatting room created successfully"));
 
         verify(chatRoomService, times(1)).createChatRoom(anyString(), any(ChatRoomCreateRequestDTO.class));
     }
 
     @Test
-    void testJoinChatRoom_Success() throws Exception {
-
+    void testJoinChatRoom() throws Exception {
         ChatRoomJoinRequestDTO requestDTO = new ChatRoomJoinRequestDTO(1L);
         ResponseDTO responseDTO = new ResponseDTO("Joined chat room successfully");
 
