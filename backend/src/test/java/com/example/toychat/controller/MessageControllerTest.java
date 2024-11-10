@@ -49,7 +49,7 @@ public class MessageControllerTest {
     void sendMessage_ShouldReturn201_WhenMessageIsSentSuccessfully() throws Exception {
         Long chatroomId = 1L;
         MessageSendRequestDTO requestDTO = new MessageSendRequestDTO("Hello, World!");
-        MessageSendResponseDTO responseDTO = new MessageSendResponseDTO(1L, "Message sent successfully");
+        MessageSendResponseDTO responseDTO = new MessageSendResponseDTO("Message sent successfully", 1L);
 
         when(messageService.sendMessage(any(String.class), any(Long.class), any(MessageSendRequestDTO.class)))
                 .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(responseDTO));

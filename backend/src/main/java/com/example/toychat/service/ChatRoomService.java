@@ -151,10 +151,10 @@ public class ChatRoomService {
         logger.info("Chatting room found: {}", chatRoom.getId());
 
         // 채팅방에 이미 참여한 사용자인지 확인
-        Optional<ChatRoomMember> existingMember = chatRoomMemberRepository.findByChatRoomAndUser(chatRoom, user);
-        if (existingMember.isPresent()) {
+        boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
+        if (isMember) {
             logger.warn("User {} is already a member of chatting room {}", user.getUsername(), chatRoom.getId());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDTO("User is already a member of this chatting room"));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User is already a member of this chatting room"));
         }
 
         // 채팅방 최대 인원 확인

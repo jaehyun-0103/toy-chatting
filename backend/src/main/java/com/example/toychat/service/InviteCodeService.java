@@ -5,6 +5,7 @@ import com.example.toychat.dto.request.InviteCodeJoinRequestDTO;
 import com.example.toychat.dto.response.InviteCodeCreateResponseDTO;
 import com.example.toychat.dto.response.InviteCodeJoinResponseDTO;
 
+import com.example.toychat.dto.response.ResponseDTO;
 import com.example.toychat.entity.ChatRoom;
 import com.example.toychat.entity.ChatRoomMember;
 import com.example.toychat.entity.InviteCode;
@@ -103,9 +104,9 @@ public class InviteCodeService {
         ChatRoom chatRoom = inviteCodeOpt.get().getChatRoom();
 
         // 채팅방에 이미 참여한 경우
-        Optional<ChatRoomMember> existingMember = chatRoomMemberRepository.findByChatRoomAndUser(chatRoom, user);
-        if (existingMember.isPresent()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new InviteCodeJoinResponseDTO("User is already a member of this chat room."));
+        boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
+        if (isMember) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new InviteCodeJoinResponseDTO("User is already a member of this chatting room"));
         }
 
         // 초대 코드로 채팅방에 참여

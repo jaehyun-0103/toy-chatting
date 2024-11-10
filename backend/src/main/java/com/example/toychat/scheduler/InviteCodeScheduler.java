@@ -22,11 +22,11 @@ public class InviteCodeScheduler {
     public void deleteExpiredInviteCodes() {
         LocalDateTime now = LocalDateTime.now();
 
-        List<InviteCode> expiredInviteCodes = inviteCodeRepository.findByExpirationDateBefore(now);
+        List<InviteCode> expiredInviteCodes = inviteCodeRepository.findByExpirationDate(now);
 
         if (!expiredInviteCodes.isEmpty()) {
             // 배치 삭제 호출
-            inviteCodeRepository.deleteExpiredInviteCodesBefore(now);
+            inviteCodeRepository.deleteExpiredInviteCodes(now);
             System.out.println("만료된 초대코드가 삭제되었습니다.");
         }
     }
