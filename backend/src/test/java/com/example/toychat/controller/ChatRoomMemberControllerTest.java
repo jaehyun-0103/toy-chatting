@@ -2,6 +2,7 @@ package com.example.toychat.controller;
 
 import com.example.toychat.dto.response.ChatRoomMemberResponseDTO;
 
+import com.example.toychat.dto.response.ResponseDTO;
 import com.example.toychat.service.ChatRoomService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -56,18 +57,19 @@ public class ChatRoomMemberControllerTest {
                         .header("Authorization", "Bearer some_valid_token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].username", is("user1")))
-                .andExpect(jsonPath("$[1].username", is("user2")))
-                .andDo(print());
+                .andExpect(jsonPath("$[1].username", is("user2")));
     }
 
     @Test
-    public void testLeaveOrDeleteChatRoom_Success() throws Exception {
+    public void testLeaveChatRoom() throws Exception {
+        ResponseDTO responseDTO = new ResponseDTO("Chatting room left successfully");
+
         when(chatRoomService.leaveOrDeleteChatRoom(any(String.class), any(Long.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.NO_CONTENT).build());
+                .thenReturn(new ResponseEntity<>(responseDTO, HttpStatus.OK));
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/chatrooms/{chatroom_id}/delete", 1L)
                         .header("Authorization", "Bearer some_valid_token"))
-                .andExpect(status().isNoContent())
-                .andDo(print());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Chatting room left successfully"));
     }
 }
