@@ -1,12 +1,11 @@
 package com.example.toychat.controller;
 
-import com.example.toychat.dto.request.InviteCodeCreateRequestDTO;
 import com.example.toychat.dto.request.MessageSendRequestDTO;
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
 import com.example.toychat.dto.response.MessageSendResponseDTO;
-import com.example.toychat.dto.response.MessageUpdateResponseDTO;
 
+import com.example.toychat.dto.response.ResponseDTO;
 import com.example.toychat.service.MessageService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -89,7 +88,7 @@ public class MessageControllerTest {
         Long chatroomId = 1L;
         Long messageId = 1L;
         MessageUpdateRequestDTO requestDTO = new MessageUpdateRequestDTO("Updated Message");
-        MessageUpdateResponseDTO responseDTO = new MessageUpdateResponseDTO("Message updated successfully");
+        ResponseDTO responseDTO = new ResponseDTO("Message updated successfully");
 
         when(messageService.updateMessage(any(String.class), any(Long.class), any(Long.class), any(MessageUpdateRequestDTO.class)))
                 .thenReturn(ResponseEntity.ok(responseDTO));

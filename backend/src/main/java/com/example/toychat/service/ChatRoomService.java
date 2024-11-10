@@ -121,6 +121,7 @@ public class ChatRoomService {
      */
     public ResponseEntity<ResponseDTO> joinChatRoom(String token, ChatRoomJoinRequestDTO joinRequestDTO) {
         logger.info("Attempting to join chatting room with ID: {}", joinRequestDTO.getChatroomId());
+
         // chatroom_id가 비어 있는지 확인
         if (joinRequestDTO.getChatroomId() == null) {
             logger.warn("Invalid chatroom ID received: {}", joinRequestDTO.getChatroomId());
@@ -363,8 +364,8 @@ public class ChatRoomService {
                 logger.info("Chatting room ID: {} deleted successfully by creator {}", chatRoom.getId(), user.getUsername());
                 return ResponseEntity.ok(new ResponseDTO("Chatting room deleted successfully"));
             } else { // 다른 회원도 남음
-                logger.warn("Cannot delete chat room if other members remain. Chatting room ID: {}", chatRoom.getId());
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("Cannot delete chat room if other members remain"));
+                logger.warn("Cannot delete chatting room if other members remain. Chatting room ID: {}", chatRoom.getId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("Cannot delete chatting room if other members remain"));
             }
         } else {  // 생성자가 아니라면
             chatRoomMemberRepository.deleteByChatRoomAndUser(chatRoom, user);

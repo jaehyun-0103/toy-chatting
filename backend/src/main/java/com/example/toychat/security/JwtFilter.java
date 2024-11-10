@@ -28,11 +28,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     /**
      * 요청을 필터링하여 JWT의 유효성을 검사하고 인증 정보를 설정합니다.
-     * @param request HTTP 요청
-     * @param response HTTP 응답
+     *
+     * @param request     HTTP 요청
+     * @param response    HTTP 응답
      * @param filterChain 필터 체인
      * @throws ServletException 서블릿 예외
-     * @throws IOException IO 예외
+     * @throws IOException      IO 예외
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

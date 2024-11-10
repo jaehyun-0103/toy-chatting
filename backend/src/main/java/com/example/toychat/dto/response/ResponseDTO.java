@@ -11,6 +11,3 @@ public class ResponseDTO {
 
     private String message;
 }
-// MessageUpdateResponseDTO
-// InviteCodeJoinResponseDTO
-// 2.6 채팅방 탈퇴 및 삭제

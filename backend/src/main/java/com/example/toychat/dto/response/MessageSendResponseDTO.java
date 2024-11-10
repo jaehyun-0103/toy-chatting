@@ -1,5 +1,6 @@
 package com.example.toychat.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,5 +12,6 @@ public class MessageSendResponseDTO {
 
     private String message;
 
-    private Long id; // message_id
+    @JsonProperty("message_id")
+    private Long messageId;
 }

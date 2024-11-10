@@ -1,12 +1,11 @@
 package com.example.toychat.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.util.List;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "User")

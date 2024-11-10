@@ -2,6 +2,7 @@ package com.example.toychat.repository;
 
 import com.example.toychat.entity.ChatRoom;
 import com.example.toychat.entity.Message;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

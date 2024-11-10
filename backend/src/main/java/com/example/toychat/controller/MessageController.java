@@ -4,7 +4,7 @@ import com.example.toychat.dto.request.MessageUpdateRequestDTO;
 import com.example.toychat.dto.request.MessageSendRequestDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
 import com.example.toychat.dto.response.MessageSendResponseDTO;
-import com.example.toychat.dto.response.MessageUpdateResponseDTO;
+import com.example.toychat.dto.response.ResponseDTO;
 
 import com.example.toychat.service.MessageService;
 
@@ -42,7 +42,7 @@ public class MessageController {
 
     // 메시지 수정
     @PutMapping("/{chatroom_id}/{message_id}")
-    public ResponseEntity<MessageUpdateResponseDTO> updateMessage(
+    public ResponseEntity<ResponseDTO> updateMessage(
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable("chatroom_id") Long chatroomId,
             @PathVariable("message_id") Long messageId,
