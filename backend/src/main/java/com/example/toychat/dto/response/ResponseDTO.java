@@ -7,9 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessageSendResponseDTO {
+public class ResponseDTO {
 
     private String message;
-
-    private Long id; // message_id
 }
+// MessageUpdateResponseDTO
+// InviteCodeJoinResponseDTO
+// 2.6 채팅방 탈퇴 및 삭제

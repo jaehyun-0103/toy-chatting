@@ -1,12 +1,9 @@
 package com.example.toychat.controller;
 
 import com.example.toychat.dto.request.ChatRoomCreateRequestDTO;
-import com.example.toychat.dto.response.ChatRoomCreateResponseDTO;
-import com.example.toychat.dto.response.ChatRoomJoinResponseDTO;
+import com.example.toychat.dto.response.*;
 import com.example.toychat.dto.request.ChatRoomJoinRequestDTO;
-import com.example.toychat.dto.response.ChatRoomListResponseDTO;
 
-import com.example.toychat.dto.response.ChatRoomMemberResponseDTO;
 import com.example.toychat.service.ChatRoomService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +30,7 @@ public class ChatRoomController {
 
     // 채팅방 참여
     @PostMapping("/join")
-    public ResponseEntity<ChatRoomJoinResponseDTO> joinChatRoom(
+    public ResponseEntity<ResponseDTO> joinChatRoom(
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody ChatRoomJoinRequestDTO joinRequestDTO) {
         String token = authorizationHeader.substring(7); // "Bearer " 제거
@@ -67,7 +64,7 @@ public class ChatRoomController {
 
     // 채팅방 탈퇴 및 삭제
     @DeleteMapping("/{chatroom_id}/delete")
-    public ResponseEntity<String> leaveOrDeleteChatRoom(
+    public ResponseEntity<ResponseDTO> leaveOrDeleteChatRoom(
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable("chatroom_id") Long chatroomId) {
         String token = authorizationHeader.substring(7); // "Bearer " 제거

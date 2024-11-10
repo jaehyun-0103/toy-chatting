@@ -15,7 +15,7 @@ public class ChatRoomCreateRequestDTO {
     private String title;
 
     @JsonProperty("max_members")
-    private int maxMembers;
+    private Integer maxMembers;
 
     @JsonProperty("is_private")
     private boolean isPrivate;

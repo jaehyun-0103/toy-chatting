@@ -40,7 +40,7 @@ public class InviteCodeService {
     private UserRepository userRepository;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JwtUtil jwtUtil; // JWT 유틸리티 주입
 
     /**
      * 초대 코드 생성

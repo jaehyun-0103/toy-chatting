@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 public class InviteCodeCreateResponseDTO {
 
     private String message;
+
+    // invite_code
 }

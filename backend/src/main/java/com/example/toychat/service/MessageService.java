@@ -43,7 +43,7 @@ public class MessageService {
     private UserRepository userRepository;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JwtUtil jwtUtil; // JWT 유틸리티 주입
 
     /**
      * 특정 채팅방에서 사용자가 메시지를 전송합니다.
@@ -76,7 +76,7 @@ public class MessageService {
         message.setContent(requestDTO.getContent());
         messageRepository.save(message);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageSendResponseDTO(message.getId(), "Message sent successfully"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageSendResponseDTO("Message sent successfully", message.getId()));
     }
 
     /**

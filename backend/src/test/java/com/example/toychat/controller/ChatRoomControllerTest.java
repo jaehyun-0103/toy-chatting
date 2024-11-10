@@ -2,9 +2,9 @@ package com.example.toychat.controller;
 
 import com.example.toychat.dto.request.ChatRoomCreateRequestDTO;
 import com.example.toychat.dto.response.ChatRoomCreateResponseDTO;
-import com.example.toychat.dto.response.ChatRoomJoinResponseDTO;
 import com.example.toychat.dto.request.ChatRoomJoinRequestDTO;
 
+import com.example.toychat.dto.response.ResponseDTO;
 import com.example.toychat.service.ChatRoomService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +42,7 @@ class ChatRoomControllerTest {
     @Test
     void testCreateChatRoom_Success() throws Exception {
         ChatRoomCreateRequestDTO requestDTO = new ChatRoomCreateRequestDTO("Test Room", 10, false);
-        ChatRoomCreateResponseDTO responseDTO = new ChatRoomCreateResponseDTO(1L, 1L, "Chat room created successfully");
+        ChatRoomCreateResponseDTO responseDTO = new ChatRoomCreateResponseDTO("Chat room created successfully", 1L, 1L);
 
         when(chatRoomService.createChatRoom(anyString(), any(ChatRoomCreateRequestDTO.class)))
                 .thenReturn(new ResponseEntity<>(responseDTO, HttpStatus.CREATED));
@@ -63,7 +63,7 @@ class ChatRoomControllerTest {
     void testJoinChatRoom_Success() throws Exception {
 
         ChatRoomJoinRequestDTO requestDTO = new ChatRoomJoinRequestDTO(1L);
-        ChatRoomJoinResponseDTO responseDTO = new ChatRoomJoinResponseDTO("Joined chat room successfully");
+        ResponseDTO responseDTO = new ResponseDTO("Joined chat room successfully");
 
         when(chatRoomService.joinChatRoom(anyString(), any(ChatRoomJoinRequestDTO.class)))
                 .thenReturn(new ResponseEntity<>(responseDTO, HttpStatus.OK));
