@@ -74,26 +74,26 @@ public class AuthService {
         // 사용자 이름이 비어 있는지 확인
         if (!StringUtils.hasText(authDTO.getUsername())) {
             logger.warn("Username is required for registration.");
-            return ResponseEntity.badRequest().body(Map.of("message", "Username is required"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Username is required"));
         }
 
         // 비밀번호가 비어 있는지 확인
         if (!StringUtils.hasText(authDTO.getPassword())) {
             logger.warn("Password is required for registration.");
-            return ResponseEntity.badRequest().body(Map.of("message", "Password is required"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Password is required"));
         }
 
         // 이메일이 비어 있는지 확인하고 이메일 형식 검사
         if (!StringUtils.hasText(authDTO.getEmail()) || !authDTO.getEmail().contains("@")) {
             logger.warn("Invalid email format provided.");
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid email format"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid email format"));
         }
 
         // 사용자 이름 또는 이메일이 이미 존재하는지 확인
         if (userRepository.findByUsername(authDTO.getUsername()).isPresent() ||
                 userRepository.findByEmail(authDTO.getEmail()).isPresent()) {
             logger.warn("Username or Email already exists: {}", authDTO.getEmail());
-            return ResponseEntity.badRequest().body(Map.of(
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                     "message", "Username or Email already exists"
             ));
         }
@@ -124,27 +124,27 @@ public class AuthService {
         // 이메일이 비어 있는지 확인하고 이메일 형식 검사
         if (!StringUtils.hasText(authDTO.getEmail()) || !authDTO.getEmail().contains("@")) {
             logger.warn("Invalid email format provided.");
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid email format"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid email format"));
         }
 
         // 비밀번호가 비어 있는지 확인
         if (!StringUtils.hasText(authDTO.getPassword())) {
             logger.warn("Password is required for login.");
-            return ResponseEntity.badRequest().body(Map.of("message", "Password is required"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Password is required"));
         }
 
         // 이메일로 사용자 찾기
         Optional<User> userOpt = userRepository.findByEmail(authDTO.getEmail());
         if (userOpt.isEmpty()) {
             logger.error("Invalid email or password for email: {}", authDTO.getEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email"));
         }
         User user = userOpt.get();
 
         // 해당 이메일 사용자의 비밀번호 검증
         if (!passwordEncoder.matches(authDTO.getPassword(), user.getPasswordHash())) {
             logger.error("Invalid email or password for email: {}", authDTO.getEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid password"));
         }
 
         // JWT 토큰 생성
