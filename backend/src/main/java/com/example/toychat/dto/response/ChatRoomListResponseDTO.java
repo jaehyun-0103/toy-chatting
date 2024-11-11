@@ -11,7 +11,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoomListResponseDTO {
-    private Long id;
+
+    @JsonProperty("chatroom_id")
+    private Long chatroomId;
 
     private String title;
 

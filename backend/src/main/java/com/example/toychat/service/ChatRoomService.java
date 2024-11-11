@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
 import java.util.List;
@@ -192,7 +193,7 @@ public class ChatRoomService {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             logger.error("User not found for username: {}", username);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
 
         // 모든 채팅방 조회
@@ -237,7 +238,7 @@ public class ChatRoomService {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             logger.error("User not found for username: {}", username);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
         logger.info("User found: {}", user.getUsername());
@@ -285,7 +286,7 @@ public class ChatRoomService {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             logger.error("User not found for username: {}", username);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
         logger.info("User found: {}", user.getUsername());
@@ -294,7 +295,7 @@ public class ChatRoomService {
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
         if (chatRoomOpt.isEmpty()) {
             logger.error("Chatting room not found for ID: {}", chatroomId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Chatting room not found");
         }
         ChatRoom chatRoom = chatRoomOpt.get();
         logger.info("Chatting room found: {}", chatRoom.getId());
@@ -303,7 +304,7 @@ public class ChatRoomService {
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (!isMember) {
             logger.warn("User {} is not a member of chatting room {}", user.getUsername(), chatRoom.getId());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.emptyList());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not a member of the chatting room");
         }
         logger.info("User {} is a member of chatting room {}", user.getUsername(), chatRoom.getId());
 
