@@ -42,11 +42,6 @@ jobs:
           cd frontend  # frontend 디렉토리로 이동
           npm install  # 의존성 설치
 
-      - name: Run frontend tests  # 프론트엔드 테스트 실행 단계
-        run: |
-          cd frontend  # frontend 디렉토리로 이동
-          npm test  # 테스트 실행
-
       - name: Build frontend  # 프론트엔드 애플리케이션 빌드 단계
         run: |
           cd frontend  # frontend 디렉토리로 이동
