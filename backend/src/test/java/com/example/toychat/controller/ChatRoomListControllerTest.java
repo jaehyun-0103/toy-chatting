@@ -49,7 +49,7 @@ public class ChatRoomListControllerTest {
         chatRoom.setPrivate(false);
 
         when(chatRoomService.getAllChatRooms(anyString())).thenReturn(ResponseEntity.ok(
-                List.of(new ChatRoomListResponseDTO(1L, "Test Chat Room", 10, false, 2))
+                List.of(new ChatRoomListResponseDTO(1L, 1L,"Test Chat Room", 10, false, 2))
         ));
 
         mockMvc.perform(get("/api/chatrooms")
@@ -74,7 +74,7 @@ public class ChatRoomListControllerTest {
         chatRoom.setPrivate(false);
 
         when(chatRoomService.getMyChatRooms(anyString())).thenReturn(ResponseEntity.ok(
-                List.of(new ChatRoomListResponseDTO(1L, "My Chat Room", 10, false, 2))
+                List.of(new ChatRoomListResponseDTO(1L, 1L,"My Chat Room", 10, false, 2))
         ));
 
         mockMvc.perform(get("/api/chatrooms/lists")

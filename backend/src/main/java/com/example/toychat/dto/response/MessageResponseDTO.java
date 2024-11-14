@@ -17,6 +17,9 @@ public class MessageResponseDTO {
 
     private String username;
 
+    @JsonProperty("user_id")
+    private Long userId;
+
     private String content;
 
     @JsonProperty("updated_at")

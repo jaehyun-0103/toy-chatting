@@ -153,7 +153,8 @@ public class AuthService {
 
         return ResponseEntity.ok(Map.of(
                 "message", "Login is successfully",
-                "token", token
+                "token", token,
+                "user_id", user.getId()
         ));
     }
 
@@ -177,6 +178,12 @@ public class AuthService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User does not exist"));
         }
         User user = userOpt.get();
+
+        // 사용자 참여한 채팅방 확인
+        if (!user.getChatRooms().isEmpty()) {
+            logger.error("User still participates in chat rooms: {}", username);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "User must leave all chat rooms before deleting account"));
+        }
 
         // 사용자 삭제
         userRepository.delete(user);

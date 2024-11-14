@@ -156,9 +156,9 @@ public class MessageService {
         List<Message> messages = messageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom);
         logger.info("Found {} messages in chatting room ID: {}", messages.size(), chatRoom.getId());
 
-        // request
+        // response
         List<MessageResponseDTO> response = messages.stream()
-                .map(msg -> new MessageResponseDTO(msg.getId(), msg.getUser().getUsername(), msg.getContent(), msg.getUpdatedAt()))
+                .map(msg -> new MessageResponseDTO(msg.getId(), msg.getUser().getUsername(), msg.getUser().getId(), msg.getContent(), msg.getUpdatedAt()))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(response);

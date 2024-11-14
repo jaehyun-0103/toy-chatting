@@ -15,6 +15,9 @@ public class ChatRoomListResponseDTO {
     @JsonProperty("chatroom_id")
     private Long chatroomId;
 
+    @JsonProperty("creator_id")
+    private Long creatorId;
+
     private String title;
 
     @JsonProperty("max_members")
