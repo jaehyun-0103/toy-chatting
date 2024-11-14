@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-interface Message {
+interface MessageType {
   message_id: number;
   username: string;
   user_id: number;
@@ -11,7 +11,7 @@ interface Message {
   updated_at: string;
 }
 
-interface Member {
+interface MemberType {
   user_id: number;
   username: string;
   joined_at: string;
@@ -20,12 +20,11 @@ interface Member {
 // 채팅방
 const ChatRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [content, setContent] = useState<string>("");
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberType[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState<string>("");
   const navigate = useNavigate();
@@ -39,12 +38,12 @@ const ChatRoom: React.FC = () => {
     const fetchMessagesAndMembers = async () => {
       setLoading(true);
       try {
-        const messagesResponse = await axios.get<Message[]>(`/api/messages/${roomId}`, {
+        const messagesResponse = await axios.get<MessageType[]>(`/api/messages/${roomId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMessages(messagesResponse.data);
 
-        const membersResponse = await axios.get<Member[]>(`/api/chatrooms/${roomId}/members`, {
+        const membersResponse = await axios.get<MemberType[]>(`/api/chatrooms/${roomId}/members`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMembers(membersResponse.data);
