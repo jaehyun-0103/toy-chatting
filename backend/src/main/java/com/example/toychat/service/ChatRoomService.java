@@ -202,6 +202,7 @@ public class ChatRoomService {
 
         // response
         List<ChatRoomListResponseDTO> responseDTOs = chatRooms.stream()
+                .filter(chatRoom -> !chatRoom.isPrivate())
                 .map(chatRoom -> {
                     // 채팅방에 참여한 인원 수 계산
                     int currentMembers = chatRoomMemberRepository.countByChatRoom(chatRoom);
@@ -209,6 +210,7 @@ public class ChatRoomService {
 
                     return new ChatRoomListResponseDTO(
                             chatRoom.getId(),
+                            chatRoom.getCreator().getId(),
                             chatRoom.getTitle(),
                             chatRoom.getMaxMembers(),
                             chatRoom.isPrivate(),
@@ -256,6 +258,7 @@ public class ChatRoomService {
 
                     return new ChatRoomListResponseDTO(
                             chatRoom.getId(),
+                            chatRoom.getCreator().getId(),
                             chatRoom.getTitle(),
                             chatRoom.getMaxMembers(),
                             chatRoom.isPrivate(),

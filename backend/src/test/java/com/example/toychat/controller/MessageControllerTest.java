@@ -67,8 +67,8 @@ public class MessageControllerTest {
     @Test
     void testGetMessages() throws Exception {
         Long chatroomId = 1L;
-        MessageResponseDTO message1 = new MessageResponseDTO(1L, "user1", "Hello", LocalDateTime.parse("2024-11-09T12:00:00"));
-        MessageResponseDTO message2 = new MessageResponseDTO(2L, "user2", "Hi", LocalDateTime.parse("2024-11-09T12:05:00"));
+        MessageResponseDTO message1 = new MessageResponseDTO(1L, "user1", 1L,"Hello", LocalDateTime.parse("2024-11-09T12:00:00"));
+        MessageResponseDTO message2 = new MessageResponseDTO(2L, "user2", 2L,"Hi", LocalDateTime.parse("2024-11-09T12:05:00"));
         List<MessageResponseDTO> messageList = Arrays.asList(message1, message2);
 
         when(messageService.getMessages(any(String.class), any(Long.class)))
