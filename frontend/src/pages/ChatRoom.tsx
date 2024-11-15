@@ -247,7 +247,7 @@ const ChatRoom: React.FC = () => {
           <LoadingText>로딩 중...</LoadingText>
         ) : messages.length > 0 ? (
           messages.map((msg) => (
-            <>
+            <React.Fragment key={msg.message_id}>
               {msg.user_id !== userId && <Username>{msg.username}</Username>}
               <MessageWrapper key={msg.message_id} iscurrentuser={msg.user_id === userId ? "true" : undefined}>
                 {msg.user_id === userId && visibleEditButtons[msg.message_id] && (
@@ -262,7 +262,7 @@ const ChatRoom: React.FC = () => {
                   <MessageDate>{new Date(msg.updated_at).toLocaleTimeString()}</MessageDate>
                 </Message>
               </MessageWrapper>
-            </>
+            </React.Fragment>
           ))
         ) : (
           <NoDataText>메시지가 없습니다.</NoDataText>
