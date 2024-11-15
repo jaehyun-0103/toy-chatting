@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // 채팅방 생성
 const CreateChatRoom = () => {
@@ -18,17 +19,25 @@ const CreateChatRoom = () => {
         { title, max_members: maxMembers, is_private: isPrivate },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert(response.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "생성 성공",
+        text: response.data.message,
+      });
       navigate("/chatList");
     } catch (error: any) {
-      alert("채팅방 생성 실패: " + (error.response?.data?.message || error.message));
+      Swal.fire({
+        icon: "error",
+        title: "생성 실패",
+        text: error.response?.data?.message || error.message,
+      });
     }
   };
 
   return (
     <Container>
-      <Title>채팅방 생성</Title>
-      <Input type="text" placeholder="채팅방 제목" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <h2>채팅방 생성</h2>
+      <Input type="text" placeholder="제목" value={title} onChange={(e) => setTitle(e.target.value)} />
       <Input
         type="number"
         placeholder="최대 인원 수"
@@ -43,8 +52,10 @@ const CreateChatRoom = () => {
           비공개 방
         </label>
       </CheckboxContainer>
-      <Button onClick={handleCreateChatRoom}>채팅방 생성</Button>
-      <BackButton onClick={() => navigate("/chatList")}>채팅방 목록으로 돌아가기</BackButton>
+      <ButtonContainer>
+        <Button onClick={handleCreateChatRoom}>생성</Button>
+        <BackButton onClick={() => navigate("/chatList")}>취소</BackButton>
+      </ButtonContainer>
     </Container>
   );
 };
@@ -55,15 +66,10 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   height: 100vh;
   background-color: #f8f9fa;
-`;
-
-const Title = styled.h1`
-  font-size: 2rem;
-  color: #333;
-  margin-bottom: 1rem;
+  padding-top: 20px;
 `;
 
 const Input = styled.input`
@@ -82,36 +88,44 @@ const Input = styled.input`
 const CheckboxContainer = styled.div`
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 300px;
   margin: 0.5rem 0;
 `;
 
 const Checkbox = styled.input`
   margin-right: 0.5rem;
   transform: scale(1.2);
+  vertical-align: middle;
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  width: 300px;
+  margin-top: 1rem;
 `;
 
 const Button = styled.button`
-  width: 300px;
+  width: 45%;
   padding: 0.8rem;
-  margin-top: 1rem;
   font-size: 1rem;
   color: #fff;
-  background-color: #28a745;
+  background-color: #007bff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   &:hover {
-    background-color: #218838;
+    background-color: #0056b3;
   }
 `;
 
 const BackButton = styled.button`
-  width: 300px;
+  width: 45%;
   padding: 0.8rem;
-  margin-top: 0.5rem;
   font-size: 1rem;
   color: #007bff;
-  background-color: transparent;
+  background-color: #fff;
   border: 1px solid #007bff;
   border-radius: 4px;
   cursor: pointer;
