@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import Swal from "sweetalert2";
+import { BiListUl, BiCommentAdd, BiLogOut } from "react-icons/bi";
+import { MdOutlineChatBubbleOutline, MdExitToApp } from "react-icons/md";
+import { FcInvite } from "react-icons/fc";
+import { FaLock } from "react-icons/fa";
 
 // 채팅방 목록
 const ChatList = () => {
@@ -10,6 +15,7 @@ const ChatList = () => {
   const [selectedTab, setSelectedTab] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inviteCode, setInviteCode] = useState<string>("");
+
   const navigate = useNavigate();
 
   const fetchChatRooms = async () => {
@@ -25,8 +31,12 @@ const ChatList = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMyChatRooms(myChatRoomsResponse.data);
-    } catch (error) {
-      alert("채팅방 목록을 불러오는 데 실패했습니다.");
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "목록 불러오기 실패",
+        text: error.response?.data?.message || error.message,
+      });
     }
   };
 
@@ -35,10 +45,18 @@ const ChatList = () => {
 
     try {
       const response = await axios.post("/api/chatrooms/join", { chatroom_id }, { headers: { Authorization: `Bearer ${token}` } });
-      alert(response.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "참여 성공",
+        text: response.data.message,
+      });
       fetchChatRooms();
-    } catch (error) {
-      alert("채팅방 참여에 실패했습니다.");
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "참여 실패",
+        text: error.response?.data?.message || error.message,
+      });
     }
   };
 
@@ -47,11 +65,19 @@ const ChatList = () => {
 
     try {
       const response = await axios.post("/api/invite/join", { invite_code: inviteCode }, { headers: { Authorization: `Bearer ${token}` } });
-      alert(response.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "초대코드 입력 성공",
+        text: response.data.message,
+      });
       setIsModalOpen(false);
       fetchChatRooms();
-    } catch (error) {
-      alert("초대 코드로 참여에 실패했습니다.");
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "초대코드 입력 실패",
+        text: error.response?.data?.message || error.message,
+      });
     }
   };
 
@@ -61,6 +87,7 @@ const ChatList = () => {
     if (selectedChatRoom) {
       localStorage.setItem("creator_id", selectedChatRoom.creator_id.toString());
       localStorage.setItem("is_private", selectedChatRoom.is_private.toString());
+      localStorage.setItem("title", selectedChatRoom.title.toString());
 
       navigate(`/chatroom/${chatroom_id}`);
     } else {
@@ -69,10 +96,15 @@ const ChatList = () => {
       if (selectedAllChatRoom) {
         localStorage.setItem("creator_id", selectedAllChatRoom.creator_id.toString());
         localStorage.setItem("is_private", selectedAllChatRoom.is_private.toString());
+        localStorage.setItem("title", selectedChatRoom.title.toString());
 
         navigate(`/chatroom/${chatroom_id}`);
       } else {
-        alert("해당 채팅방을 찾을 수 없습니다.");
+        Swal.fire({
+          icon: "error",
+          title: "채팅방 로딩 실패",
+          text: "Chatting room not found",
+        });
       }
     }
   };
@@ -88,12 +120,25 @@ const ChatList = () => {
       const response = await axios.delete("/api/delete", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert(response.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "탈퇴 성공",
+        text: response.data.message,
+      });
       localStorage.removeItem("token");
       navigate("/");
-    } catch (error) {
-      alert("사용자 탈퇴에 실패했습니다.");
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "탈퇴 실패",
+        text: error.response?.data?.message || error.message,
+      });
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
   useEffect(() => {
@@ -103,67 +148,96 @@ const ChatList = () => {
   return (
     <Container>
       <Sidebar>
-        <SidebarButton onClick={() => setSelectedTab("all")}>전체 채팅방</SidebarButton>
-        <SidebarButton onClick={() => setSelectedTab("my")}>내 채팅방</SidebarButton>
-        <CreateChatRoomButton onClick={handleCreateChatRoom}>채팅방 생성</CreateChatRoomButton>
-        <DeleteUserButton onClick={handleDeleteUser}>사용자 탈퇴</DeleteUserButton>
+        <SidebarItem onClick={() => setSelectedTab("all")}>
+          <BiListUl size={24} />
+          <span>전체 채팅방</span>
+        </SidebarItem>
+        <SidebarItem onClick={() => setSelectedTab("my")}>
+          <MdOutlineChatBubbleOutline size={24} />
+          <span>내 채팅방</span>
+        </SidebarItem>
+        <SidebarItem onClick={() => setIsModalOpen(true)}>
+          <FcInvite size={24} />
+          <span>초대 코드</span>
+        </SidebarItem>
+        <SidebarItem onClick={handleCreateChatRoom}>
+          <BiCommentAdd size={24} />
+          <span>채팅방 생성</span>
+        </SidebarItem>
+        <SidebarItem onClick={handleLogout}>
+          <BiLogOut size={24} />
+          <span>로그아웃</span>
+        </SidebarItem>
+        <SidebarItem onClick={handleDeleteUser}>
+          <MdExitToApp size={24} />
+          <span>사용자 탈퇴</span>
+        </SidebarItem>
       </Sidebar>
 
       <MainContent>
         {selectedTab === "all" ? (
           <>
-            <h2>전체 채팅방 목록</h2>
+            <h2>전체 채팅방</h2>
             <ChatRoomList>
-              {chatRooms.map((chatRoom) => {
-                const isMember = myChatRooms.some((room) => room.chatroom_id === chatRoom.chatroom_id);
+              {chatRooms
+                .slice()
+                .reverse()
+                .map((chatRoom) => {
+                  const isMember = myChatRooms.some((room) => room.chatroom_id === chatRoom.chatroom_id);
 
-                return (
-                  <ChatRoomItem
-                    key={chatRoom.chatroom_id}
-                    onClick={() => isMember && handleChatRoomClick(chatRoom.chatroom_id)}
-                    disabled={!isMember}
-                  >
-                    <ChatRoomInfo>
-                      <span>{chatRoom.title}</span>
-                      <span>최대 인원: {chatRoom.max_members}</span>
-                      <span>현재 인원: {chatRoom.current_members}</span>
-                    </ChatRoomInfo>
-                    {isMember ? (
-                      <JoinButton disabled>참여됨</JoinButton>
-                    ) : (
-                      <JoinButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleJoinChatRoom(chatRoom.chatroom_id);
-                        }}
-                      >
-                        참여
-                      </JoinButton>
-                    )}
-                  </ChatRoomItem>
-                );
-              })}
+                  return (
+                    <ChatRoomItem
+                      key={chatRoom.chatroom_id}
+                      onClick={() => isMember && handleChatRoomClick(chatRoom.chatroom_id)}
+                      disabled={!isMember}
+                    >
+                      <ChatRoomInfo>
+                        <span>{chatRoom.title}</span>
+                        <span>
+                          인원수 : {chatRoom.current_members} / {chatRoom.max_members}
+                        </span>
+                      </ChatRoomInfo>
+                      {isMember ? (
+                        <JoinButton disabled>참여됨</JoinButton>
+                      ) : (
+                        <JoinButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleJoinChatRoom(chatRoom.chatroom_id);
+                          }}
+                        >
+                          참여
+                        </JoinButton>
+                      )}
+                    </ChatRoomItem>
+                  );
+                })}
             </ChatRoomList>
           </>
         ) : (
           <>
-            <h2>내 채팅방 목록</h2>
+            <h2>내 채팅방</h2>
             <ChatRoomList>
-              {myChatRooms.map((chatRoom) => (
-                <ChatRoomItem key={chatRoom.chatroom_id} onClick={() => handleChatRoomClick(chatRoom.chatroom_id)} disabled={false}>
-                  <ChatRoomInfo>
-                    <span>{chatRoom.title}</span>
-                    <span>최대 인원: {chatRoom.max_members}</span>
-                    <span>현재 인원: {chatRoom.current_members}</span>
-                  </ChatRoomInfo>
-                  <JoinButton disabled>참여됨</JoinButton>
-                </ChatRoomItem>
-              ))}
+              {myChatRooms
+                .slice()
+                .reverse()
+                .map((chatRoom) => (
+                  <ChatRoomItem key={chatRoom.chatroom_id} onClick={() => handleChatRoomClick(chatRoom.chatroom_id)} disabled={false}>
+                    <ChatRoomInfo>
+                      <span>
+                        {chatRoom.is_private && <FaLock style={{ marginRight: "5px" }} />}
+                        {chatRoom.title}
+                      </span>
+                      <span>
+                        인원수 : {chatRoom.current_members}/{chatRoom.max_members}
+                      </span>
+                    </ChatRoomInfo>
+                    <JoinButton disabled>참여됨</JoinButton>
+                  </ChatRoomItem>
+                ))}
             </ChatRoomList>
           </>
         )}
-
-        <InviteCodeButton onClick={() => setIsModalOpen(true)}>초대 코드로 참여</InviteCodeButton>
       </MainContent>
 
       {isModalOpen && (
@@ -189,52 +263,33 @@ const Container = styled.div`
 `;
 
 const Sidebar = styled.div`
-  width: 200px;
-  padding: 20px;
-  background-color: #f8f9fa;
-`;
-
-const SidebarButton = styled.button`
-  width: 100%;
-  padding: 10px;
+  width: 80px;
   background-color: #007bff;
-  color: white;
-  border: none;
-  margin-bottom: 10px;
-  cursor: pointer;
-  &:hover {
-    background-color: #0056b3;
-  }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: fixed;
+  height: 100vh;
+  padding: 20px 0;
 `;
 
-const CreateChatRoomButton = styled.button`
-  width: 100%;
-  padding: 10px;
-  background-color: #28a745;
+const SidebarItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
   color: white;
-  border: none;
-  margin-top: 10px;
   cursor: pointer;
+  font-size: 12px;
+  text-align: center;
   &:hover {
-    background-color: #218838;
-  }
-`;
-
-const DeleteUserButton = styled.button`
-  width: 100%;
-  padding: 10px;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  margin-top: 10px;
-  cursor: pointer;
-  &:hover {
-    background-color: #c82333;
+    color: #0056b3;
   }
 `;
 
 const MainContent = styled.div`
   flex: 1;
+  margin-left: 80px;
   padding: 20px;
 `;
 
@@ -257,6 +312,7 @@ const ChatRoomInfo = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  text-align: left;
 `;
 
 const JoinButton = styled.button`
@@ -269,19 +325,6 @@ const JoinButton = styled.button`
   &:disabled {
     background-color: #ccc;
     cursor: not-allowed;
-  }
-`;
-
-const InviteCodeButton = styled.button`
-  padding: 10px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-  margin-top: 20px;
-  &:hover {
-    background-color: #218838;
   }
 `;
 

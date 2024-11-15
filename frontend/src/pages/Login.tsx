@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // 로그인
 const Login = () => {
@@ -12,12 +13,26 @@ const Login = () => {
   const handleLogin = async () => {
     try {
       const response = await axios.post("/api/login", { email, password });
-      alert(response.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "로그인 성공",
+        text: response.data.message,
+      });
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user_id", response.data.user_id);
       navigate("/chatList");
     } catch (error: any) {
-      alert("로그인 실패: " + (error.response?.data?.message || error.message));
+      Swal.fire({
+        icon: "error",
+        title: "로그인 실패",
+        text: error.response?.data?.message || error.message,
+      });
+    }
+  };
+
+  const handleKeyPress = (event: any) => {
+    if (event.key === "Enter") {
+      handleLogin();
     }
   };
 
@@ -25,7 +40,13 @@ const Login = () => {
     <Container>
       <Title>로그인</Title>
       <Input type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <Input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <Input
+        type="password"
+        placeholder="비밀번호"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyPress={handleKeyPress}
+      />
       <Button onClick={handleLogin}>로그인</Button>
       <RegisterButton onClick={() => navigate("/register")}>회원가입</RegisterButton>
     </Container>
@@ -83,7 +104,7 @@ const RegisterButton = styled.button`
   margin-top: 0.5rem;
   font-size: 1rem;
   color: #007bff;
-  background-color: transparent;
+  background-color: #fff;
   border: 1px solid #007bff;
   border-radius: 4px;
   cursor: pointer;

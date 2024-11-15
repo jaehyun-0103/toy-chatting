@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // 회원가입
 const Register = () => {
@@ -13,10 +14,24 @@ const Register = () => {
   const handleRegister = async () => {
     try {
       const response = await axios.post("/api/register", { username, email, password });
-      alert(response.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "회원가입 성공",
+        text: response.data.message,
+      });
       navigate("/");
     } catch (error: any) {
-      alert("회원가입 실패: " + (error.response?.data?.message || error.message));
+      Swal.fire({
+        icon: "error",
+        title: "회원가입 실패",
+        text: error.response?.data?.message || error.message,
+      });
+    }
+  };
+
+  const handleKeyPress = (event: any) => {
+    if (event.key === "Enter") {
+      handleRegister();
     }
   };
 
@@ -25,7 +40,13 @@ const Register = () => {
       <Title>회원가입</Title>
       <Input type="text" placeholder="사용자 이름" value={username} onChange={(e) => setUsername(e.target.value)} />
       <Input type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <Input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <Input
+        type="password"
+        placeholder="비밀번호"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyPress={handleKeyPress}
+      />
       <LoginButton onClick={() => navigate("/")}>이미 계정이 있으신가요?</LoginButton>
       <Button onClick={handleRegister}>회원가입</Button>
     </Container>
