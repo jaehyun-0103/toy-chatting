@@ -39,6 +39,12 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // WebSocket 핸드셰이크 요청이면 필터링을 거치지 않도록 설정
+        if (request.getRequestURI().startsWith("/ws")) {
+            filterChain.doFilter(request, response);
+            return; // WebSocket 연결은 JWT 필터를 거치지 않음
+        }
+
         final String authorizationHeader = request.getHeader("Authorization"); // Authorization 헤더 가져오기
 
         String username = null; // 사용자 이름 변수 초기화
