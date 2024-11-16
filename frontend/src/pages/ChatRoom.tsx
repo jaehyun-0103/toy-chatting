@@ -38,6 +38,8 @@ const ChatRoom: React.FC = () => {
   const creatorId = parseInt(localStorage.getItem("creator_id") || "0");
   const isPrivate = localStorage.getItem("is_private") === "true";
   const title = localStorage.getItem("title");
+  const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -64,7 +66,30 @@ const ChatRoom: React.FC = () => {
       }
     };
 
+    const webSocketConnection = async () => {
+      const ws = new WebSocket(`ws://localhost:8080/ws`);
+
+      ws.onopen = () => {
+        console.log("WebSocket connection established");
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket connection closed");
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      setWebSocket(ws);
+
+      return () => {
+        ws.close();
+      };
+    };
+
     fetchMessagesAndMembers();
+    webSocketConnection();
   }, [roomId]);
 
   useEffect(() => {
