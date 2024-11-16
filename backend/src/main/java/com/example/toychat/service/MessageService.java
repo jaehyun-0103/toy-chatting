@@ -24,10 +24,10 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,6 +51,9 @@ public class MessageService {
 
     @Autowired
     private JwtUtil jwtUtil; // JWT 유틸리티 주입
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     /**
      * 채팅방에서 사용자가 메시지를 전송합니다.
@@ -108,6 +111,17 @@ public class MessageService {
         message.setContent(sendRequestDTO.getContent());
         messageRepository.save(message);
         logger.info("Message sent successfully by user {} to chatting room ID: {} with content: {}", user.getUsername(), chatRoom.getId(), sendRequestDTO.getContent());
+
+        // 저장된 메시지 정보를 웹소켓으로 전송
+        MessageResponseDTO responseDTO = new MessageResponseDTO(
+                message.getId(),
+                user.getUsername(),
+                user.getId(),
+                message.getContent(),
+                message.getUpdatedAt()
+        );
+        messagingTemplate.convertAndSend("/topic/chatroom/" + chatroomId, responseDTO); // 채팅방 구독 경로로 메시지 전송
+        logger.info("Message broadcasted to WebSocket for chatroom ID: {}", chatroomId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new MessageSendResponseDTO("Message sent successfully", message.getId()));
     }
