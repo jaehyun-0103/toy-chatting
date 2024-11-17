@@ -6,6 +6,7 @@ import { FaUsers, FaKey, FaEdit, FaCrown, FaAngleDoubleDown } from "react-icons/
 import { GiExitDoor } from "react-icons/gi";
 import { BiArrowBack } from "react-icons/bi";
 import Swal from "sweetalert2";
+import { Stomp } from "@stomp/stompjs";
 
 interface MessageType {
   message_id: number;
@@ -38,8 +39,8 @@ const ChatRoom: React.FC = () => {
   const creatorId = parseInt(localStorage.getItem("creator_id") || "0");
   const isPrivate = localStorage.getItem("is_private") === "true";
   const title = localStorage.getItem("title");
-  const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
-
+  const [connected, setConnected] = useState<boolean>(false);
+  const [client, setClient] = useState<any>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -66,30 +67,41 @@ const ChatRoom: React.FC = () => {
       }
     };
 
-    const webSocketConnection = async () => {
-      const ws = new WebSocket(`ws://localhost:8080/ws`);
-
-      ws.onopen = () => {
-        console.log("WebSocket connection established");
-      };
-
-      ws.onclose = () => {
-        console.log("WebSocket connection closed");
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-
-      setWebSocket(ws);
-
-      return () => {
-        ws.close();
-      };
-    };
-
     fetchMessagesAndMembers();
-    webSocketConnection();
+
+    const stompClient = Stomp.client("ws://localhost:8080/ws");
+
+    stompClient.debug = () => {};
+
+    stompClient.connect(
+      {},
+      () => {
+        setConnected(true);
+
+        stompClient.subscribe(`/topic/public/${roomId}`, (message: any) => {
+          const { username, content, message_id, user_id, updated_at } = JSON.parse(message.body);
+
+          const newMessage: MessageType = {
+            username: username,
+            content: content,
+            message_id: message_id,
+            user_id: user_id,
+            updated_at: updated_at,
+          };
+
+          setMessages((prev) => [...prev, newMessage]);
+        });
+      },
+      (error: string) => {
+        console.error("STOMP connection error:", error);
+      }
+    );
+
+    setClient(stompClient);
+
+    return () => {
+      stompClient.disconnect(() => console.log("Disconnected"));
+    };
   }, [roomId]);
 
   useEffect(() => {
@@ -101,37 +113,18 @@ const ChatRoom: React.FC = () => {
   const handleSendMessage = async () => {
     const token = localStorage.getItem("token");
 
-    const newMessage = {
-      message_id: Date.now(),
-      username: "나",
-      user_id: userId,
-      content,
-      updated_at: new Date().toISOString(),
-    };
+    const url = `/app/chat.sendMessage/${roomId}`;
+    client.send(
+      url,
+      {
+        Authorization: `Bearer ${token}`,
+      },
+      JSON.stringify({
+        content: content,
+      })
+    );
 
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-
-    try {
-      const response = await axios.post<{ message: string; message_id: number }>(
-        `/api/messages/${roomId}`,
-        { content },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      setMessages((prevMessages) =>
-        prevMessages.map((msg) => (msg.message_id === newMessage.message_id ? { ...msg, message_id: response.data.message_id } : msg))
-      );
-      setContent("");
-    } catch (error: any) {
-      Swal.fire({
-        icon: "error",
-        title: "메시지 전송 실패",
-        text: error.response?.data?.message || error.message,
-      });
-      setMessages((prevMessages) => prevMessages.filter((msg) => msg.message_id !== newMessage.message_id));
-    }
+    setContent("");
   };
 
   const handleEditMessage = (messageId: number, currentContent: string) => {
@@ -268,7 +261,7 @@ const ChatRoom: React.FC = () => {
       </Header>
 
       <MessageContainer>
-        {loading ? (
+        {loading && connected ? (
           <LoadingText>로딩 중...</LoadingText>
         ) : messages.length > 0 ? (
           messages.map((msg) => (
