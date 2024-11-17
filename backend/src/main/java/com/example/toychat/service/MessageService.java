@@ -23,6 +23,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -58,13 +59,13 @@ public class MessageService {
      * @param sendRequestDTO 메시지 내용이 담긴 DTO
      * @return 전송 결과를 포함한 ResponseEntity
      */
-    public ResponseEntity<MessageResponseDTO> sendMessage(String token, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
+    public MessageResponseDTO sendMessage(String token, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
         logger.info("Attempting to send message to chatting room ID: {} with content: {}", chatroomId, sendRequestDTO.getContent());
 
         // content가 비어 있는지 확인
         if (sendRequestDTO.getContent() == null || sendRequestDTO.getContent().trim().isEmpty()) {
             logger.warn("Invalid content in message send request for chatting room ID: {}", chatroomId);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            throw new MessagingException("Invalid content");
         }
 
         // 토큰에서 사용자 이름 추출
@@ -75,7 +76,7 @@ public class MessageService {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             logger.error("User not found for username: {}", username);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            throw new MessagingException("User not found");
         }
         User user = userOpt.get();
         logger.info("User found: {}", user.getUsername());
@@ -84,7 +85,7 @@ public class MessageService {
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
         if (chatRoomOpt.isEmpty()) {
             logger.error("Chatting room not found for ID: {}", chatroomId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            throw new MessagingException("Chat room not found");
         }
         ChatRoom chatRoom = chatRoomOpt.get();
         logger.info("Chatting room found: {} (ChatRoom ID: {})", chatRoom.getTitle(), chatRoom.getId());
@@ -93,7 +94,7 @@ public class MessageService {
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (!isMember) {
             logger.warn("User {} is not a member of chatting room ID: {}", user.getUsername(), chatRoom.getId());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+            throw new MessagingException("User is not a member of the chat room");
         }
 
         // 메시지 생성 및 저장
@@ -113,7 +114,7 @@ public class MessageService {
                 message.getUpdatedAt()
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
+        return responseDTO;
     }
 
     /**
