@@ -6,10 +6,11 @@ import Swal from "sweetalert2";
 
 // 채팅방 생성
 const CreateChatRoom = () => {
+  const navigate = useNavigate();
+  
   const [title, setTitle] = useState("");
   const [maxMembers, setMaxMembers] = useState(10);
   const [isPrivate, setIsPrivate] = useState(false);
-  const navigate = useNavigate();
 
   const handleCreateChatRoom = async () => {
     try {

@@ -10,13 +10,17 @@ import { FaLock } from "react-icons/fa";
 
 // 채팅방 목록
 const ChatList = () => {
+  const navigate = useNavigate();
+
   const [chatRooms, setChatRooms] = useState<any[]>([]);
   const [myChatRooms, setMyChatRooms] = useState<any[]>([]);
   const [selectedTab, setSelectedTab] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inviteCode, setInviteCode] = useState<string>("");
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    fetchChatRooms();
+  }, []);
 
   const fetchChatRooms = async () => {
     const token = localStorage.getItem("token");
@@ -140,10 +144,6 @@ const ChatList = () => {
     localStorage.removeItem("token");
     navigate("/");
   };
-
-  useEffect(() => {
-    fetchChatRooms();
-  }, []);
 
   return (
     <Container>

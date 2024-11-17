@@ -24,28 +24,36 @@ interface MemberType {
 
 // 채팅방
 const ChatRoom: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
-  const [messages, setMessages] = useState<MessageType[]>([]);
-  const [content, setContent] = useState<string>("");
-  const [members, setMembers] = useState<MemberType[]>([]);
-  const [issidebaropen, setIsSidebarOpen] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
-  const [editingContent, setEditingContent] = useState<string>("");
   const navigate = useNavigate();
-  const messageEndRef = useRef<HTMLDivElement>(null);
-  const [visibleEditButtons, setVisibleEditButtons] = useState<{ [key: number]: boolean }>({});
+
+  const { roomId } = useParams<{ roomId: string }>();
   const userId = parseInt(localStorage.getItem("user_id") || "0");
   const creatorId = parseInt(localStorage.getItem("creator_id") || "0");
   const isPrivate = localStorage.getItem("is_private") === "true";
   const title = localStorage.getItem("title");
+
+  const [loading, setLoading] = useState<boolean>(false);
   const [connected, setConnected] = useState<boolean>(false);
   const [client, setClient] = useState<any>(null);
 
+  const [messages, setMessages] = useState<MessageType[]>([]);
+  const [content, setContent] = useState<string>("");
+  const [members, setMembers] = useState<MemberType[]>([]);
+
+  const [editingContent, setEditingContent] = useState<string>("");
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [visibleEditButtons, setVisibleEditButtons] = useState<{ [key: number]: boolean }>({});
+
+  const [issidebaropen, setIsSidebarOpen] = useState<boolean>(false);
+
+  const messageEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
     const fetchMessagesAndMembers = async () => {
+      const token = localStorage.getItem("token");
+
       setLoading(true);
+
       try {
         const messagesResponse = await axios.get<MessageType[]>(`/api/messages/${roomId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -64,6 +72,7 @@ const ChatRoom: React.FC = () => {
         });
       } finally {
         setLoading(false);
+        scrollToBottom();
       }
     };
 
@@ -105,9 +114,7 @@ const ChatRoom: React.FC = () => {
   }, [roomId]);
 
   useEffect(() => {
-    if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -192,7 +199,7 @@ const ChatRoom: React.FC = () => {
 
   const scrollToBottom = () => {
     if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messageEndRef.current.scrollIntoView({ behavior: "auto" });
     }
   };
 
@@ -238,25 +245,25 @@ const ChatRoom: React.FC = () => {
     <Container issidebaropen={issidebaropen ? "true" : "false"}>
       <Header>
         <IconButtonWrapper>
-          <IconButton onClick={handleBackButtonClick}>
+          <IconButton1 onClick={handleBackButtonClick}>
             <BiArrowBack />
-          </IconButton>
+          </IconButton1>
           {isPrivate && creatorId === userId && (
-            <IconButton onClick={handleGenerateInviteCode}>
+            <IconButton1 onClick={handleGenerateInviteCode}>
               <FaKey style={{ color: "#FFCC00" }} />
-            </IconButton>
+            </IconButton1>
           )}
         </IconButtonWrapper>
         <TitleWrapper>
           <Title>{title}</Title>
         </TitleWrapper>
         <IconButtonWrapper>
-          <IconButton onClick={handleToggleSidebar}>
+          <IconButton1 onClick={handleToggleSidebar}>
             <FaUsers />
-          </IconButton>
-          <IconButton onClick={handleLeaveChatRoom}>
+          </IconButton1>
+          <IconButton1 onClick={handleLeaveChatRoom}>
             <GiExitDoor />
-          </IconButton>
+          </IconButton1>
         </IconButtonWrapper>
       </Header>
 
@@ -352,35 +359,13 @@ const ChatRoom: React.FC = () => {
 
 export default ChatRoom;
 
-const CancelButton = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #6c757d;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 0.5rem;
-
-  &:hover {
-    background-color: #5a6268;
-  }
-`;
-
-const EditButton = styled.button`
-  margin-left: 10px;
-  background: none;
-  border: none;
-  color: #007bff;
-  cursor: pointer;
-  font-size: 1.2rem;
-  &:hover {
-    color: #0056b3;
-  }
-`;
-
-const Title = styled.h1`
-  font-size: 1.5rem;
-  margin: 0;
+const Container = styled.div<{ issidebaropen: string }>`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f0f2f5;
+  transition: margin-right 0.3s ease-in-out;
+  margin-right: ${({ issidebaropen }) => (issidebaropen === "true" ? "330px" : "0")};
 `;
 
 const Header = styled.header`
@@ -392,7 +377,13 @@ const Header = styled.header`
   color: #fff;
 `;
 
-const IconButton = styled.button`
+const IconButtonWrapper = styled.div`
+  display: flex;
+  gap: 3px;
+  align-items: center;
+`;
+
+const IconButton1 = styled.button`
   display: flex;
   align-items: center;
   padding: 0.5rem 0.5rem;
@@ -409,23 +400,6 @@ const IconButton = styled.button`
   }
 `;
 
-const IconButton2 = styled.button`
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 0.5rem;
-  color: #fff;
-  background-color: #808080;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1.4rem;
-  margin-left: 0.3rem;
-  margin-right: 0.3rem;
-  &:hover {
-    background-color: #2d4157;
-  }
-`;
-
 const TitleWrapper = styled.div`
   display: flex;
   justify-content: center;
@@ -436,19 +410,9 @@ const TitleWrapper = styled.div`
   transform: translateX(-50%);
 `;
 
-const IconButtonWrapper = styled.div`
-  display: flex;
-  gap: 3px;
-  align-items: center;
-`;
-
-const Container = styled.div<{ issidebaropen: string }>`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #f0f2f5;
-  transition: margin-right 0.3s ease-in-out;
-  margin-right: ${({ issidebaropen }) => (issidebaropen === "true" ? "330px" : "0")};
+const Title = styled.h1`
+  font-size: 1.5rem;
+  margin: 0;
 `;
 
 const MessageContainer = styled.div`
@@ -460,9 +424,34 @@ const MessageContainer = styled.div`
   gap: 0.5rem;
 `;
 
+const LoadingText = styled.div`
+  text-align: center;
+  font-size: 1.2rem;
+  color: #007bff;
+`;
+
+const Username = styled.span`
+  font-size: 1rem;
+  text-align: left;
+  margin-left: 0.3rem;
+  margin-bottom: -0.5rem;
+`;
+
 const MessageWrapper = styled.div<{ iscurrentuser?: string }>`
   display: flex;
   justify-content: ${({ iscurrentuser }) => (iscurrentuser === "true" ? "flex-end" : "flex-start")};
+`;
+
+const EditButton = styled.button`
+  margin-left: 10px;
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 1.2rem;
+  &:hover {
+    color: #0056b3;
+  }
 `;
 
 const Message = styled.div<{ iscurrentuser?: string }>`
@@ -481,11 +470,10 @@ const MessageDate = styled.span`
   margin-right: 10rem;
 `;
 
-const Username = styled.span`
-  font-size: 1rem;
-  text-align: left;
-  margin-left: 0.3rem;
-  margin-bottom: -0.5rem;
+const NoDataText = styled.div`
+  text-align: center;
+  font-size: 1.2rem;
+  color: #888;
 `;
 
 const InputContainer = styled.div`
@@ -514,6 +502,36 @@ const SendButton = styled.button`
   cursor: pointer;
   &:hover {
     background-color: #0056b3;
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  &:hover {
+    background-color: #5a6268;
+  }
+`;
+
+const IconButton2 = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.5rem;
+  color: #fff;
+  background-color: #808080;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.4rem;
+  margin-left: 0.3rem;
+  margin-right: 0.3rem;
+  &:hover {
+    background-color: #2d4157;
   }
 `;
 
@@ -574,16 +592,4 @@ const CrownIcon = styled(FaCrown)`
   color: #ffd700;
   margin-right: 8px;
   font-size: 1.2rem;
-`;
-
-const NoDataText = styled.div`
-  text-align: center;
-  font-size: 1.2rem;
-  color: #888;
-`;
-
-const LoadingText = styled.div`
-  text-align: center;
-  font-size: 1.2rem;
-  color: #007bff;
 `;
