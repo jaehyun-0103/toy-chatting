@@ -8,7 +8,6 @@ import com.example.toychat.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.*;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.ResponseEntity;
 
 @RestController
 public class WebSocketController {
@@ -19,7 +18,7 @@ public class WebSocketController {
     // 메시지 전송 (웹소켓)
     @MessageMapping("/chat.sendMessage/{chatroom_id}")
     @SendTo("/topic/public/{chatroom_id}")
-    public ResponseEntity<MessageResponseDTO> sendMessage(
+    public MessageResponseDTO sendMessage(
             @DestinationVariable("chatroom_id") Long chatroomId,
             @Payload MessageSendRequestDTO sendRequestDTO,
             @Header("Authorization") String authorizationHeader) {
