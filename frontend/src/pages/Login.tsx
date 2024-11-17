@@ -6,9 +6,10 @@ import Swal from "sweetalert2";
 
 // 로그인
 const Login = () => {
+  const navigate = useNavigate();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
