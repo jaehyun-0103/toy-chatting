@@ -3,7 +3,6 @@ package com.example.toychat.service;
 import com.example.toychat.dto.request.MessageSendRequestDTO;
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
-import com.example.toychat.dto.response.MessageSendResponseDTO;
 import com.example.toychat.dto.response.ResponseDTO;
 
 import com.example.toychat.entity.ChatRoom;
@@ -24,7 +23,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -52,9 +50,6 @@ public class MessageService {
     @Autowired
     private JwtUtil jwtUtil; // JWT 유틸리티 주입
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
-
     /**
      * 채팅방에서 사용자가 메시지를 전송합니다.
      *
@@ -63,16 +58,13 @@ public class MessageService {
      * @param sendRequestDTO 메시지 내용이 담긴 DTO
      * @return 전송 결과를 포함한 ResponseEntity
      */
-    @Transactional
-    public ResponseEntity<MessageSendResponseDTO> sendMessage(String token, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
+    public ResponseEntity<MessageResponseDTO> sendMessage(String token, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
         logger.info("Attempting to send message to chatting room ID: {} with content: {}", chatroomId, sendRequestDTO.getContent());
 
         // content가 비어 있는지 확인
         if (sendRequestDTO.getContent() == null || sendRequestDTO.getContent().trim().isEmpty()) {
             logger.warn("Invalid content in message send request for chatting room ID: {}", chatroomId);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new MessageSendResponseDTO("Invalid content", null)
-            );
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
 
         // 토큰에서 사용자 이름 추출
@@ -83,7 +75,7 @@ public class MessageService {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             logger.error("User not found for username: {}", username);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageSendResponseDTO("User not found", null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
         User user = userOpt.get();
         logger.info("User found: {}", user.getUsername());
@@ -92,7 +84,7 @@ public class MessageService {
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
         if (chatRoomOpt.isEmpty()) {
             logger.error("Chatting room not found for ID: {}", chatroomId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageSendResponseDTO("Chatting room not found", null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
         ChatRoom chatRoom = chatRoomOpt.get();
         logger.info("Chatting room found: {} (ChatRoom ID: {})", chatRoom.getTitle(), chatRoom.getId());
@@ -101,7 +93,7 @@ public class MessageService {
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (!isMember) {
             logger.warn("User {} is not a member of chatting room ID: {}", user.getUsername(), chatRoom.getId());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new MessageSendResponseDTO("User not a member of the chatting room", null));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         }
 
         // 메시지 생성 및 저장
@@ -112,7 +104,7 @@ public class MessageService {
         messageRepository.save(message);
         logger.info("Message sent successfully by user {} to chatting room ID: {} with content: {}", user.getUsername(), chatRoom.getId(), sendRequestDTO.getContent());
 
-        // 저장된 메시지 정보를 웹소켓으로 전송
+        // response
         MessageResponseDTO responseDTO = new MessageResponseDTO(
                 message.getId(),
                 user.getUsername(),
@@ -120,10 +112,8 @@ public class MessageService {
                 message.getContent(),
                 message.getUpdatedAt()
         );
-        messagingTemplate.convertAndSend("/topic/chatroom/" + chatroomId, responseDTO); // 채팅방 구독 경로로 메시지 전송
-        logger.info("Message broadcasted to WebSocket for chatroom ID: {}", chatroomId);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageSendResponseDTO("Message sent successfully", message.getId()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     /**

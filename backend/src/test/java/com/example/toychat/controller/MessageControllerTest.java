@@ -1,9 +1,7 @@
 package com.example.toychat.controller;
 
-import com.example.toychat.dto.request.MessageSendRequestDTO;
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
-import com.example.toychat.dto.response.MessageSendResponseDTO;
 
 import com.example.toychat.dto.response.ResponseDTO;
 import com.example.toychat.service.MessageService;
@@ -14,11 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -42,26 +38,6 @@ public class MessageControllerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(messageController).build();
-    }
-
-    @Test
-    void testSendMessage() throws Exception {
-        Long chatroomId = 1L;
-        MessageSendRequestDTO requestDTO = new MessageSendRequestDTO("Hello, World!");
-        MessageSendResponseDTO responseDTO = new MessageSendResponseDTO("Message sent successfully", 1L);
-
-        when(messageService.sendMessage(any(String.class), any(Long.class), any(MessageSendRequestDTO.class)))
-                .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(responseDTO));
-
-        mockMvc.perform(post("/api/messages/{chatroom_id}", chatroomId)
-                        .header("Authorization", "Bearer some_valid_token")
-                        .contentType("application/json")
-                        .content("{\"content\":\"Hello, World!\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message_id").value(1))
-                .andExpect(jsonPath("$.message").value("Message sent successfully"));
-
-        verify(messageService, times(1)).sendMessage(any(String.class), any(Long.class), eq(requestDTO));
     }
 
     @Test
@@ -101,22 +77,5 @@ public class MessageControllerTest {
                 .andExpect(jsonPath("$.message").value("Message updated successfully"));
 
         verify(messageService, times(1)).updateMessage(any(String.class), any(Long.class), any(Long.class), any(MessageUpdateRequestDTO.class));
-    }
-
-    @Test
-    void testSendMessage_Failure_UnauthorizedUser() throws Exception {
-        Long chatroomId = 1L;
-        MessageSendRequestDTO requestDTO = new MessageSendRequestDTO("Hello, World!");
-
-        when(messageService.sendMessage(any(String.class), eq(chatroomId), eq(requestDTO)))
-                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "User not authorized"));
-
-        mockMvc.perform(post("/api/messages/{chatroom_id}", chatroomId)
-                        .header("Authorization", "Bearer some_valid_token")
-                        .contentType("application/json")
-                        .content("{\"content\":\"Hello, World!\"}"))
-                .andExpect(status().isForbidden());
-
-        verify(messageService, times(1)).sendMessage(any(String.class), any(Long.class), any(MessageSendRequestDTO.class));
     }
 }

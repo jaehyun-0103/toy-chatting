@@ -1,9 +1,7 @@
 package com.example.toychat.controller;
 
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
-import com.example.toychat.dto.request.MessageSendRequestDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
-import com.example.toychat.dto.response.MessageSendResponseDTO;
 import com.example.toychat.dto.response.ResponseDTO;
 
 import com.example.toychat.service.MessageService;
@@ -20,16 +18,6 @@ public class MessageController {
 
     @Autowired
     private MessageService messageService;
-
-    // 메시지 전송
-    @PostMapping("/{chatroom_id}")
-    public ResponseEntity<MessageSendResponseDTO> sendMessage(
-            @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable("chatroom_id") Long chatroomId,
-            @RequestBody MessageSendRequestDTO requestDTO) {
-        String token = authorizationHeader.substring(7); // "Bearer " 제거
-        return messageService.sendMessage(token, chatroomId, requestDTO);
-    }
 
     // 채팅방 메시지 조회
     @GetMapping("/{chatroom_id}")
