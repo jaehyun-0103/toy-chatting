@@ -11,9 +11,11 @@ services:
       MYSQL_PASSWORD: 1234
     ports:
       - "3307:3306"
+    networks:
+      - chatting
 
   spring:
-    build: .
+    build: ./backend
     depends_on:
       - mysql
     environment:
@@ -22,3 +24,22 @@ services:
       SPRING_DATASOURCE_PASSWORD: 1234
     ports:
       - "8080:8080"
+    networks:
+      - chatting
+
+  react:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+    depends_on:
+      - spring
+    networks:
+      - chatting
+
+networks:
+  chatting:
+    driver: bridge
