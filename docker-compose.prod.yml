@@ -3,7 +3,6 @@ version: '3.8'
 services:
   spring:
     build: ./backend
-    image: your-dockerhub-username/spring-backend:latest
     ports:
       - "8080:8080"
     environment:
@@ -18,7 +17,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: your-dockerhub-username/react-frontend:latest
     ports:
       - "3000:3000"
     stdin_open: true
@@ -31,7 +29,6 @@ services:
   nginx:
     build:
       context: ./frontend
-    image: your-dockerhub-username/nginx:latest
     ports:
       - "80:80"
     volumes:

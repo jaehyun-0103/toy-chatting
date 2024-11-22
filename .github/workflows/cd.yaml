@@ -43,8 +43,5 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull your-dockerhub-username/react-frontend:latest
-            docker pull your-dockerhub-username/spring-backend:latest
-            docker pull your-dockerhub-username/nginx:latest
-            docker run -d -p 80:80 your-dockerhub-username/nginx:latest
-            docker run -d -p 8080:8080 your-dockerhub-username/spring-backend:latest
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
