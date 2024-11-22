@@ -46,7 +46,12 @@ jobs:
 
       - name: Deploy to remote server
         run: |
-          ssh -o StrictHostKeyChecking=no user@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -v -o StrictHostKeyChecking=no user@${{ secrets.SERVER_IP }} << 'EOF'
+            if ! command -v docker-compose &> /dev/null
+            then
+              echo "docker-compose not found, installing..."
+              sudo apt-get install -y docker-compose
+            fi
             cd /home/ubuntu/toy-chatting
             docker-compose -f docker-compose.prod.yml pull  # 최신 이미지를 풀
             docker-compose -f docker-compose.prod.yml up -d  # 서비스 재시작
