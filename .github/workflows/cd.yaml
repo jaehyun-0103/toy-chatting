@@ -46,7 +46,7 @@ jobs:
 
       - name: Deploy to remote server
         run: |
-          ssh -v -o StrictHostKeyChecking=no user@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null user@${{ secrets.SERVER_IP }} <<EOF
             if ! command -v docker-compose &> /dev/null
             then
               echo "docker-compose not found, installing..."
