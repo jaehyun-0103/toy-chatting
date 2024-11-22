@@ -39,20 +39,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up SSH key for remote server
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
-      - name: Deploy to remote server
+      - name: Install SSH Client
         run: |
-          ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null user@${{ secrets.SERVER_IP }} <<EOF
-            if ! command -v docker-compose &> /dev/null
-            then
-              echo "docker-compose not found, installing..."
-              sudo apt-get install -y docker-compose
-            fi
-            cd /home/ubuntu/toy-chatting
-            docker-compose -f docker-compose.prod.yml pull  # 최신 이미지를 풀
-            docker-compose -f docker-compose.prod.yml up -d  # 서비스 재시작
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+      - name: Deploy to Production Server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "${SSH_PRIVATE_KEY}" > ssh_key
+          chmod 600 ssh_key
+          ssh -o StrictHostKeyChecking=no -i ssh_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /home/ubuntu/toy-chatting/docker-compose.prod.yml
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
           EOF
