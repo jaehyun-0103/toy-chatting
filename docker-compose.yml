@@ -44,7 +44,6 @@ services:
   nginx:
     build:
       context: ./frontend
-    image: nginx:latest
     ports:
       - "80:80"
     volumes:
