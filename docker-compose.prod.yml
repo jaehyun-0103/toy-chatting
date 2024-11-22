@@ -12,6 +12,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - chatting
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   react:
     build:
@@ -25,6 +31,12 @@ services:
       - spring
     networks:
       - chatting
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   nginx:
     build:
@@ -38,6 +50,12 @@ services:
       - react
     networks:
       - chatting
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
 networks:
   chatting:
