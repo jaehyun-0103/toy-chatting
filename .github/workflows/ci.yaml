@@ -1,4 +1,4 @@
-name: CI/CD  # 워크플로우 이름
+name: CI
 
 on:
   push:
