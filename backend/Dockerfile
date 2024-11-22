@@ -11,7 +11,7 @@ COPY build.gradle settings.gradle ./
 COPY src ./src
 
 # Build the application
-RUN gradle clean build -x test
+RUN gradle --no-daemon build -x test
 
 # Use a smaller image for running the application
 FROM openjdk:17-jdk-slim
@@ -20,7 +20,7 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copy the built JAR file from the build stage
-COPY --from=build /app/build/libs/backend-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/build/libs/*.jar app.jar
 
 # Expose the port the app runs on
 EXPOSE 8080
