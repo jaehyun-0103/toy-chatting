@@ -40,7 +40,7 @@ const Login = () => {
   return (
     <Container>
       <Title>로그인</Title>
-      <Title>배포 자동화 테스트~</Title>
+      <Title>배포 자동화 테스트1234~</Title>
       <Input type="email" placeholder="이메일" value={email} onChange={(e) => setEmail(e.target.value)} />
       <Input
         type="password"
