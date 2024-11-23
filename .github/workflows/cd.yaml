@@ -54,5 +54,5 @@ jobs:
             cd /home/ubuntu/toy-chatting
             git pull origin main
             docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d --no-deps --build
+            docker-compose -f docker-compose.prod.yml up -d --build
           EOF
