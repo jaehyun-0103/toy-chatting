@@ -17,7 +17,7 @@ COPY . .
 # CMD ["npm", "start"]
 
 # React 애플리케이션 빌드
-RUN npm run build
+RUN NODE_OPTIONS="--max_old_space_size=8012" npm run build
 
 # Nginx를 기반으로 설정
 FROM nginx:alpine
