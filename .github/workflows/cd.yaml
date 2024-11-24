@@ -34,7 +34,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ steps.check_ec2.outputs.is_running == 'true' }}
 
     steps:
       - name: Checkout code
@@ -51,10 +50,12 @@ jobs:
           instance_state=$(aws ec2 describe-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }} --query 'Reservations[0].Instances[0].State.Name' --output text)
           echo "EC2 instance state: $instance_state"
           if [ "$instance_state" == "running" ]; then
-          echo "is_running=true" >> $GITHUB_ENV
+            echo "is_running=true" >> $GITHUB_ENV
           else
-          echo "is_running=false" >> $GITHUB_ENV
+            echo "is_running=false" >> $GITHUB_ENV
           fi
+        outputs:
+          is_running: ${{ steps.check_ec2.outputs.is_running }}
 
       - name: Deploy to Production Server
         env:
