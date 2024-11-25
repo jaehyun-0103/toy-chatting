@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chatting
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 1234
+    ports:
+      - "3307:3306"
+    networks:
+      - chatting
+
+  spring:
+    build: ./backend
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/chatting
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_PROFILES_ACTIVE: local
+    ports:
+      - "8080:8080"
+    networks:
+      - chatting
+
+  react:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+    depends_on:
+      - spring
+    networks:
+      - chatting
+
+  nginx:
+    build:
+      context: ./frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - spring
+      - react
+    networks:
+      - chatting
+
+  k6:
+    image: grafana/k6:latest
+    volumes:
+      - ./k6:/k6
+    entrypoint: ["k6", "run", "/k6/script.js"]
+    networks:
+      - chatting
+    depends_on:
+      - spring
+
+
+networks:
+  chatting:
+    driver: bridge
