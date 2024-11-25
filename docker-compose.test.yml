@@ -54,16 +54,26 @@ services:
     networks:
       - chatting
 
-  k6:
-    image: grafana/k6:latest
-    volumes:
-      - ./k6:/k6
-    entrypoint: ["k6", "run", "/k6/script.js"]
-    networks:
-      - chatting
-    depends_on:
-      - spring
+# 부하 테스트
+#  k6:
+#    image: grafana/k6:latest
+#    volumes:
+#      - ./k6:/k6
+#    entrypoint: ["k6", "run", "/k6/script.js"]
+#    networks:
+#      - chatting
+#    depends_on:
+#      - spring
 
+# 보안 취약점 테스트 (http://localhost:8081/zap/)
+  owasp-zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: zaproxy
+    ports:
+      - "8081:8080"
+      - "8090:8090"
+    user: zap
+    entrypoint: ["zap-webswing.sh"]
 
 networks:
   chatting:
