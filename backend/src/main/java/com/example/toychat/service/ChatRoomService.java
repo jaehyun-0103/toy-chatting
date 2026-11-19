@@ -53,6 +53,7 @@ public class ChatRoomService {
      * @param requestDTO 채팅방 생성 요청 데이터
      * @return 채팅방 생성 결과
      */
+    @Transactional
     public ResponseEntity<ChatRoomCreateResponseDTO> createChatRoom(String token, ChatRoomCreateRequestDTO requestDTO) {
         logger.info("Attempting to create a chatting room with title: {} and max members: {}", requestDTO.getTitle(), requestDTO.getMaxMembers());
 
