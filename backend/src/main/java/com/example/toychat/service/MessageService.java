@@ -54,12 +54,12 @@ public class MessageService {
     /**
      * 채팅방에서 사용자가 메시지를 전송합니다.
      *
-     * @param token          사용자 인증 토큰
+     * @param userId         사용자 ID
      * @param chatroomId     메시지를 보낼 채팅방 ID
      * @param sendRequestDTO 메시지 내용이 담긴 DTO
      * @return 전송 결과를 포함한 ResponseEntity
      */
-    public MessageResponseDTO sendMessage(String token, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
+    public MessageResponseDTO sendMessage(Long userId, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
         logger.info("Attempting to send message to chatting room ID: {} with content: {}", chatroomId, sendRequestDTO.getContent());
 
         // content가 비어 있는지 확인
@@ -68,14 +68,10 @@ public class MessageService {
             throw new MessagingException("Invalid content");
         }
 
-        // 토큰에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
-
         // 사용자 조회
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             throw new MessagingException("User not found");
         }
         User user = userOpt.get();

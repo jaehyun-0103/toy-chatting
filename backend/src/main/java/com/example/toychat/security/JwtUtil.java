@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -15,6 +16,9 @@ import java.util.Map;
 public class JwtUtil {
 
     private final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256); // 안전한 SecretKey 생성
+
+    @Value("${app.jwt.expiration-ms:36000000}")
+    private long expirationMillis; // JWT 만료 시간 (밀리초)
 
     /**
      * 사용자 이름을 기반으로 JWT를 생성합니다.
@@ -39,7 +43,7 @@ public class JwtUtil {
                 .setClaims(claims) // 클레임 설정
                 .setSubject(subject) // 주제 설정
                 .setIssuedAt(new Date(System.currentTimeMillis())) // 발행 일시 설정
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10시간 후 만료 설정
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMillis)) // 만료 일시 설정
                 .signWith(SECRET_KEY) // SecretKey로 서명
                 .compact(); // 토큰 문자열로 변환
     }
@@ -88,5 +92,15 @@ public class JwtUtil {
      */
     private Boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date()); // 현재 시간과 만료 시간 비교
+    }
+
+    /**
+     * JWT에서 만료 일시를 추출합니다.
+     *
+     * @param token JWT 문자열
+     * @return 추출된 만료 일시
+     */
+    public Date extractExpiration(String token) {
+        return extractAllClaims(token).getExpiration();
     }
 }

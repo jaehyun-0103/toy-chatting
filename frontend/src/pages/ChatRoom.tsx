@@ -78,38 +78,57 @@ const ChatRoom: React.FC = () => {
 
     fetchMessagesAndMembers();
 
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setConnected(false);
+      return;
+    }
+
     const stompClient = Stomp.client("ws://localhost:8080/ws");
 
     stompClient.debug = () => {};
+    stompClient.reconnectDelay = 0;
+
+    stompClient.onWebSocketClose = () => {
+      setConnected(false);
+    };
+
+    stompClient.onWebSocketError = () => {
+      setConnected(false);
+    };
 
     stompClient.connect(
-      {},
+      { Authorization: `Bearer ${token}` },
       () => {
         setConnected(true);
 
-        stompClient.subscribe(`/topic/public/${roomId}`, (message: any) => {
-          const { username, content, message_id, user_id, updated_at } = JSON.parse(message.body);
+        stompClient.subscribe(
+          `/topic/public/${roomId}`,
+          (message: any) => {
+            const received: MessageType = JSON.parse(message.body);
 
-          const newMessage: MessageType = {
-            username: username,
-            content: content,
-            message_id: message_id,
-            user_id: user_id,
-            updated_at: updated_at,
-          };
-
-          setMessages((prev) => [...prev, newMessage]);
-        });
+            setMessages((prev) => [...prev, received]);
+          }
+        );
       },
-      (error: string) => {
-        console.error("STOMP connection error:", error);
+      () => {
+        setConnected(false);
+
+        Swal.fire({
+          icon: "error",
+          title: "채팅 연결 실패",
+          text: "로그인 상태와 채팅방 참여 권한을 확인해주세요.",
+        });
+
+        void stompClient.deactivate();
       }
     );
 
     setClient(stompClient);
 
     return () => {
-      stompClient.disconnect(() => console.log("Disconnected"));
+      void stompClient.deactivate();
     };
   }, [roomId]);
 
@@ -117,18 +136,24 @@ const ChatRoom: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    const token = localStorage.getItem("token");
+  const handleSendMessage = () => {
+    if (!connected || !client?.connected) {
+      Swal.fire({
+        icon: "warning",
+        title: "채팅 연결 확인",
+        text: "연결이 끊어졌습니다. 다시 로그인하거나 방에 재접속해주세요.",
+      });
+      return;
+    }
 
-    const url = `/app/chat.sendMessage/${roomId}`;
+    if (!content.trim()) {
+      return;
+    }
+
     client.send(
-      url,
-      {
-        Authorization: `Bearer ${token}`,
-      },
-      JSON.stringify({
-        content: content,
-      })
+      `/app/chat.sendMessage/${roomId}`,
+      {},
+      JSON.stringify({ content })
     );
 
     setContent("");

@@ -14,7 +14,7 @@ COPY src ./src
 RUN gradle --no-daemon build -x test
 
 # Use a smaller image for running the application
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 
 # Set the working directory
 WORKDIR /app
