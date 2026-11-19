@@ -46,6 +46,10 @@ public class ChatRoom {
     @OneToOne(mappedBy = "chatRoom", cascade = CascadeType.ALL)
     private InviteCode inviteCode;
 
+    public boolean isFull(int currentMemberCount) {
+        return currentMemberCount >= maxMembers;
+    }
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
