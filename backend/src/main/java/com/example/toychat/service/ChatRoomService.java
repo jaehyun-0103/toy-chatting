@@ -152,6 +152,12 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomOpt.get();
         logger.info("Chatting room found: {}", chatRoom.getId());
 
+        // 비공개 채팅방인지 확인
+        if (chatRoom.isPrivate()) {
+            logger.warn("User {} attempted to join private chatting room {} directly", user.getUsername(), chatRoom.getId());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDTO("PRIVATE_ROOM_JOIN_DENIED"));
+        }
+
         // 채팅방에 이미 참여한 사용자인지 확인
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (isMember) {
