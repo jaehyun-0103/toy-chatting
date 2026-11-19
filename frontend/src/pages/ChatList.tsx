@@ -77,10 +77,21 @@ const ChatList = () => {
       setIsModalOpen(false);
       fetchChatRooms();
     } catch (error: any) {
+      const retryAfter = Number(
+        error.response?.headers?.["retry-after"]
+      );
+
+      const message =
+        error.response?.status === 429
+          ? Number.isFinite(retryAfter) && retryAfter > 0
+            ? `초대코드 참여 요청이 너무 많습니다. 약 ${retryAfter}초 후 다시 시도해주세요.`
+            : "초대코드 참여 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
+          : error.response?.data?.message || error.message;
+
       Swal.fire({
         icon: "error",
         title: "초대코드 입력 실패",
-        text: error.response?.data?.message || error.message,
+        text: message,
       });
     }
   };
@@ -244,7 +255,7 @@ const ChatList = () => {
         <ModalOverlay>
           <ModalContent>
             <h3>초대 코드 입력</h3>
-            <ModalInput type="text" placeholder="초대 코드 입력" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
+            <ModalInput type="text" placeholder="초대 코드 입력 (신규 8자리)" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
             <ModalButtons>
               <ModalButton onClick={handleJoinWithInviteCode}>확인</ModalButton>
               <ModalButton onClick={() => setIsModalOpen(false)}>취소</ModalButton>
