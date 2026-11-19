@@ -96,6 +96,14 @@ public class InviteCodeService {
         // 이미 초대 코드가 있는지 확인
         Optional<InviteCode> existingCode = inviteCodeRepository.findByChatRoom(chatRoom);
         if (existingCode.isPresent()) {
+            // 기존 초대 코드의 만료 여부 확인
+            boolean expired = !existingCode.get().getExpirationDate().isAfter(LocalDateTime.now());
+
+            if (expired) {
+                logger.warn("Expired invite code is waiting for cleanup for chatting room ID: {}", chatRoom.getId());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new InviteCodeCreateResponseDTO("Expired invite code is waiting for cleanup. Please retry in about one minute.", null));
+            }
+
             logger.warn("Invite code already exists for chatting room ID: {}", chatRoom.getId());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new InviteCodeCreateResponseDTO("Invite code already exists for this chatting room", null));
         }
@@ -146,7 +154,7 @@ public class InviteCodeService {
 
         // 초대 코드 조회
         Optional<InviteCode> inviteCodeOpt = inviteCodeRepository.findByInviteCode(joinRequestDTO.getInviteCode());
-        if (inviteCodeOpt.isEmpty() || inviteCodeOpt.get().getExpirationDate().isBefore(LocalDateTime.now())) {
+        if (inviteCodeOpt.isEmpty() || !inviteCodeOpt.get().getExpirationDate().isAfter(LocalDateTime.now())) {
             logger.warn("Invalid or expired invite code: {}", joinRequestDTO.getInviteCode());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Invalid or expired invite code"));
         }
