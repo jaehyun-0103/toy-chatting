@@ -2,6 +2,7 @@ package com.example.toychat.service;
 
 import com.example.toychat.dto.AuthDTO;
 
+import com.example.toychat.dto.request.LoginRequestDTO;
 import com.example.toychat.entity.User;
 
 import com.example.toychat.repository.ChatRoomMemberRepository;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 
@@ -92,6 +94,18 @@ public class AuthService {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Password is required"));
         }
 
+        if (authDTO.getPassword().getBytes(StandardCharsets.UTF_8).length > 72) {
+            return ResponseEntity.badRequest().body(
+                    Map.of(
+                            "message", "Invalid request",
+                            "errors", Map.of(
+                                    "password",
+                                    "Password must not exceed 72 UTF-8 bytes"
+                            )
+                    )
+            );
+        }
+
         // 이메일이 비어 있는지 확인하고 이메일 형식 검사
         if (!StringUtils.hasText(authDTO.getEmail()) || !authDTO.getEmail().contains("@")) {
             logger.warn("Invalid email format provided.");
@@ -127,7 +141,7 @@ public class AuthService {
      * @param authDTO 로그인할 사용자 정보 데이터 전송 객체
      * @return 로그인 결과에 대한 응답
      */
-    public ResponseEntity<?> login(AuthDTO authDTO) {
+    public ResponseEntity<?> login(LoginRequestDTO authDTO) {
         logger.info("Login requested");
 
         // 이메일이 비어 있는지 확인하고 이메일 형식 검사

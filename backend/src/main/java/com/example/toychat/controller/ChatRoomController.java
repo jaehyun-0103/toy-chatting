@@ -9,6 +9,7 @@ import com.example.toychat.dto.response.ResponseDTO;
 
 import com.example.toychat.service.ChatRoomService;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class ChatRoomController {
     @PostMapping
     public ResponseEntity<ChatRoomCreateResponseDTO> createChatRoom(
             @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody ChatRoomCreateRequestDTO CreateRequestDTO) {
+            @Valid @RequestBody ChatRoomCreateRequestDTO CreateRequestDTO) {
         String token = authorizationHeader.substring(7); // "Bearer " 제거
         return chatRoomService.createChatRoom(token, CreateRequestDTO);
     }
