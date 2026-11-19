@@ -166,9 +166,10 @@ public class ChatRoomService {
         }
 
         // 채팅방 최대 인원 확인
-        if (chatRoom.getMembers().size() >= chatRoom.getMaxMembers()) {
-            logger.warn("Chatting room {} is full. Current members: {}, Max members: {}", chatRoom.getId(), chatRoom.getMembers().size(), chatRoom.getMaxMembers());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDTO("Chatting room is full"));
+        int currentMemberCount = chatRoomMemberRepository.countByChatRoom(chatRoom);
+        if (chatRoom.isFull(currentMemberCount)) {
+            logger.warn("Chatting room {} is full. Current members: {}, Max members: {}", chatRoom.getId(), currentMemberCount, chatRoom.getMaxMembers());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDTO("ROOM_MAX_CAPACITY_EXCEEDED"));
         }
 
         // 채팅방에 사용자 추가

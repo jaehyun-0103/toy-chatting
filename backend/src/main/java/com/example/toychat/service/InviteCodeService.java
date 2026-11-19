@@ -160,6 +160,13 @@ public class InviteCodeService {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User is already a member of this chatting room"));
         }
 
+        // 채팅방 최대 인원 확인
+        int currentMemberCount = chatRoomMemberRepository.countByChatRoom(chatRoom);
+        if (chatRoom.isFull(currentMemberCount)) {
+            logger.warn("Chatting room {} is full. Current members: {}, Max members: {}", chatRoom.getId(), currentMemberCount, chatRoom.getMaxMembers());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDTO("ROOM_MAX_CAPACITY_EXCEEDED"));
+        }
+
         // 초대 코드로 채팅방에 참여
         ChatRoomMember chatRoomMember = new ChatRoomMember();
         chatRoomMember.setChatRoom(chatRoom);
