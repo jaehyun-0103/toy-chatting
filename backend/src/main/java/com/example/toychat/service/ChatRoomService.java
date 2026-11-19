@@ -17,14 +17,14 @@ import com.example.toychat.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -121,6 +121,7 @@ public class ChatRoomService {
      * @param joinRequestDTO 채팅방 참여 요청 데이터
      * @return 채팅방 참여 결과
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ResponseEntity<ResponseDTO> joinChatRoom(String token, ChatRoomJoinRequestDTO joinRequestDTO) {
         logger.info("Attempting to join chatting room with ID: {}", joinRequestDTO.getChatroomId());
 
@@ -145,8 +146,8 @@ public class ChatRoomService {
         User user = userOpt.get();
         logger.info("User found: {}", user.getUsername());
 
-        // 채팅방 찾기
-        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(joinRequestDTO.getChatroomId());
+        // 채팅방 찾기 (비관적 락 적용)
+        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByIdWithLock(joinRequestDTO.getChatroomId());
         if (chatRoomOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Chatting room not found"));
         }
@@ -339,7 +340,7 @@ public class ChatRoomService {
      * @param chatroomId 나가거나 삭제할 채팅방의 ID
      * @return 상태 코드 (성공적으로 나갔거나 삭제된 경우 204, 또는 조건에 따라 403)
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ResponseEntity<ResponseDTO> leaveOrDeleteChatRoom(String token, Long chatroomId) {
         logger.info("Attempting to leave or delete chatting room ID: {}", chatroomId);
 
@@ -356,8 +357,8 @@ public class ChatRoomService {
         User user = userOpt.get();
         logger.info("User found: {}", user.getUsername());
 
-        // 채팅방 조회
-        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
+        // 채팅방 조회 (비관적 락 적용)
+        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByIdWithLock(chatroomId);
         if (chatRoomOpt.isEmpty()) {
             logger.error("Chatting room not found for ID: {}", chatroomId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Chatting room not found"));

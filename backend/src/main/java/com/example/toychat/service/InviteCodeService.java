@@ -23,6 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -129,6 +131,7 @@ public class InviteCodeService {
      * @param joinRequestDTO 초대 코드로 채팅방 참여 요청 DTO
      * @return ResponseEntity 참여 결과를 포함한 응답
      */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ResponseEntity<ResponseDTO> joinByInviteCode(String token, InviteCodeJoinRequestDTO joinRequestDTO) {
         logger.info("Attempting to join chatting room using invite code: {}", joinRequestDTO.getInviteCode());
 
@@ -152,14 +155,32 @@ public class InviteCodeService {
         }
         User user = userOpt.get();
 
-        // 초대 코드 조회
+        // 초대 코드 조회 및 대상 채팅방 ID 확인
         Optional<InviteCode> inviteCodeOpt = inviteCodeRepository.findByInviteCode(joinRequestDTO.getInviteCode());
-        if (inviteCodeOpt.isEmpty() || !inviteCodeOpt.get().getExpirationDate().isAfter(LocalDateTime.now())) {
+        if (inviteCodeOpt.isEmpty()) {
             logger.warn("Invalid or expired invite code: {}", joinRequestDTO.getInviteCode());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Invalid or expired invite code"));
         }
-        ChatRoom chatRoom = inviteCodeOpt.get().getChatRoom();
+
+        // 채팅방 찾기 (비관적 락 적용)
+        Long chatroomId = inviteCodeOpt.get().getChatRoom().getId();
+        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByIdWithLock(chatroomId);
+
+        if (chatRoomOpt.isEmpty()) {
+            logger.error("Chatting room not found for ID: {}", chatroomId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Chatting room not found"));
+        }
+
+        ChatRoom chatRoom = chatRoomOpt.get();
         logger.info("Chatting room found for invite code: {} (ChatRoom ID: {})", joinRequestDTO.getInviteCode(), chatRoom.getId());
+
+        // 초대 코드 유효성 및 만료 여부 재확인
+        Optional<InviteCode> currentCode = inviteCodeRepository.findByInviteCode(joinRequestDTO.getInviteCode());
+
+        if (currentCode.isEmpty() || !currentCode.get().getChatRoom().getId().equals(chatRoom.getId()) || !currentCode.get().getExpirationDate().isAfter(LocalDateTime.now())) {
+            logger.warn("Invalid or expired invite code after lock acquisition: {}", joinRequestDTO.getInviteCode());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Invalid or expired invite code"));
+        }
 
         // 사용자가 채팅방의 멤버인지 확인
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
