@@ -85,7 +85,10 @@ const ChatRoom: React.FC = () => {
       return;
     }
 
-    const stompClient = Stomp.client("ws://localhost:8080/ws");
+    const websocketUrl = new URL("/ws", window.location.href);
+    websocketUrl.protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+    const stompClient = Stomp.client(websocketUrl.toString());
 
     stompClient.debug = () => {};
     stompClient.reconnectDelay = 0;
