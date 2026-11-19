@@ -74,14 +74,14 @@ public class ChatRoomService {
             );
         }
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ChatRoomCreateResponseDTO("User not found", null, null));
         }
         User user = userOpt.get();
@@ -132,14 +132,14 @@ public class ChatRoomService {
             );
         }
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();
@@ -193,14 +193,14 @@ public class ChatRoomService {
     public ResponseEntity<List<ChatRoomListResponseDTO>> getAllChatRooms(String token) {
         logger.info("Attempting to retrieve all chatting rooms");
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
 
@@ -240,14 +240,14 @@ public class ChatRoomService {
     public ResponseEntity<List<ChatRoomListResponseDTO>> getMyChatRooms(String token) {
         logger.info("Attempting to retrieve chatting rooms for user with token");
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
@@ -289,14 +289,14 @@ public class ChatRoomService {
     public ResponseEntity<List<ChatRoomMemberResponseDTO>> getChatRoomMembers(String token, Long chatroomId) {
         logger.info("Attempting to retrieve members for chatting room ID: {}", chatroomId);
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 조회
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
@@ -343,14 +343,14 @@ public class ChatRoomService {
     public ResponseEntity<ResponseDTO> leaveOrDeleteChatRoom(String token, Long chatroomId) {
         logger.info("Attempting to leave or delete chatting room ID: {}", chatroomId);
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 조회
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();

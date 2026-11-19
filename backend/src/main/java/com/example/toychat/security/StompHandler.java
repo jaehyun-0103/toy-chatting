@@ -166,14 +166,14 @@ public class StompHandler implements ChannelInterceptor {
         String token = headers.get(0).substring(7); // Bearer 접두사 제거 후 토큰 추출
 
         try {
-            String username = jwtUtil.extractUsername(token); // 토큰에서 사용자 이름 추출
+            Long userId = jwtUtil.extractUserId(token); // 토큰에서 사용자 ID 추출
             Date expiration = jwtUtil.extractExpiration(token); // 토큰 만료 일시 추출
 
             if (expiration == null || !expiration.toInstant().isAfter(Instant.now())) {
                 throw denied();
             }
 
-            User user = userRepository.findByUsername(username).orElseThrow(StompHandler::denied); // 사용자 정보 조회
+            User user = userRepository.findById(userId).orElseThrow(StompHandler::denied); // 사용자 ID로 사용자 정보 조회
 
             var authentication = new UsernamePasswordAuthenticationToken(user.getId().toString(), null, List.of(new SimpleGrantedAuthority("USER"))); // Spring Security 인증 토큰 생성
             accessor.setUser(authentication); // STOMP 세션에 인증 객체 설정
