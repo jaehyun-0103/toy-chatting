@@ -13,6 +13,9 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
     // 채팅방에 사용자 참여 여부 확인
     boolean existsByChatRoomAndUser(ChatRoom chatRoom, User user);
 
+    // 채팅방 ID와 사용자 ID로 채팅방 참여 여부 확인
+    boolean existsByChatRoom_IdAndUser_Id(Long chatRoomId, Long userId);
+
     // 채팅방에 참여한 인원 수 계산
     int countByChatRoom(ChatRoom chatRoom);
 
