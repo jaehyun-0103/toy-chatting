@@ -55,7 +55,7 @@ public class ChatRoomService {
      */
     @Transactional
     public ResponseEntity<ChatRoomCreateResponseDTO> createChatRoom(String token, ChatRoomCreateRequestDTO requestDTO) {
-        logger.info("Attempting to create a chatting room with title: {} and max members: {}", requestDTO.getTitle(), requestDTO.getMaxMembers());
+        logger.info("Chat room creation requested; maxMembers={}", requestDTO.getMaxMembers());
 
         // 제목 또는 최대 인원이 비어 있는지 확인
         if (requestDTO.getTitle() == null || requestDTO.getTitle().isEmpty() ||
@@ -85,7 +85,7 @@ public class ChatRoomService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ChatRoomCreateResponseDTO("User not found", null, null));
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 채팅방 생성
         ChatRoom chatRoom = new ChatRoom();
@@ -101,7 +101,7 @@ public class ChatRoomService {
         chatRoomMember.setChatRoom(chatRoom);
         chatRoomMember.setUser(user);
         chatRoomMemberRepository.save(chatRoomMember);
-        logger.info("User {} added as a member to the chatting room.", user.getUsername());
+        logger.info("User {} added as a member to the chatting room.", user.getId());
 
         // response
         ChatRoomCreateResponseDTO responseDTO = new ChatRoomCreateResponseDTO(
@@ -144,7 +144,7 @@ public class ChatRoomService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 채팅방 찾기 (비관적 락 적용)
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByIdWithLock(joinRequestDTO.getChatroomId());
@@ -156,14 +156,14 @@ public class ChatRoomService {
 
         // 비공개 채팅방인지 확인
         if (chatRoom.isPrivate()) {
-            logger.warn("User {} attempted to join private chatting room {} directly", user.getUsername(), chatRoom.getId());
+            logger.warn("User {} attempted to join private chatting room {} directly", user.getId(), chatRoom.getId());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDTO("PRIVATE_ROOM_JOIN_DENIED"));
         }
 
         // 채팅방에 이미 참여한 사용자인지 확인
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (isMember) {
-            logger.warn("User {} is already a member of chatting room {}", user.getUsername(), chatRoom.getId());
+            logger.warn("User {} is already a member of chatting room {}", user.getId(), chatRoom.getId());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User is already a member of this chatting room"));
         }
 
@@ -179,7 +179,7 @@ public class ChatRoomService {
         chatRoomMember.setChatRoom(chatRoom);
         chatRoomMember.setUser(user);
         chatRoomMemberRepository.save(chatRoomMember);
-        logger.info("User {} successfully joined chatting room {}", user.getUsername(), chatRoom.getId());
+        logger.info("User {} successfully joined chatting room {}", user.getId(), chatRoom.getId());
 
         // response
         return ResponseEntity.ok(new ResponseDTO("Joined chatting room successfully"));
@@ -252,11 +252,11 @@ public class ChatRoomService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 사용자가 참여한 채팅방 목록 조회
         List<ChatRoom> chatRooms = chatRoomMemberRepository.findChatRoomsByUser(user);
-        logger.info("User {} is a member of {} chatting rooms", user.getUsername(), chatRooms.size());
+        logger.info("User {} is a member of {} chatting rooms", user.getId(), chatRooms.size());
 
         // response
         List<ChatRoomListResponseDTO> responseDTOs = chatRooms.stream()
@@ -276,7 +276,7 @@ public class ChatRoomService {
                 })
                 .collect(Collectors.toList());
 
-        logger.info("Returning response with {} chatting rooms for user {}", responseDTOs.size(), user.getUsername());
+        logger.info("Returning response with {} chatting rooms for user {}", responseDTOs.size(), user.getId());
         return ResponseEntity.ok(responseDTOs);
     }
 
@@ -301,7 +301,7 @@ public class ChatRoomService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 채팅방 조회
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
@@ -315,10 +315,10 @@ public class ChatRoomService {
         // 사용자가 채팅방의 멤버인지 확인
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (!isMember) {
-            logger.warn("User {} is not a member of chatting room {}", user.getUsername(), chatRoom.getId());
+            logger.warn("User {} is not a member of chatting room {}", user.getId(), chatRoom.getId());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not a member of the chatting room");
         }
-        logger.info("User {} is a member of chatting room {}", user.getUsername(), chatRoom.getId());
+        logger.info("User {} is a member of chatting room {}", user.getId(), chatRoom.getId());
 
         // response
         List<ChatRoomMemberResponseDTO> responseDTOs = chatRoomMemberRepository.findByChatRoom(chatRoomOpt.get()).stream()
@@ -355,7 +355,7 @@ public class ChatRoomService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 채팅방 조회 (비관적 락 적용)
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByIdWithLock(chatroomId);
@@ -374,7 +374,7 @@ public class ChatRoomService {
 
             if (memberCount == 1) { // 생성자만 남음
                 chatRoomRepository.delete(chatRoom);
-                logger.info("Chatting room ID: {} deleted successfully by creator {}", chatRoom.getId(), user.getUsername());
+                logger.info("Chatting room ID: {} deleted successfully by creator {}", chatRoom.getId(), user.getId());
                 return ResponseEntity.ok(new ResponseDTO("Chatting room deleted successfully"));
             } else { // 다른 회원도 남음
                 logger.warn("Cannot delete chatting room if other members remain. Chatting room ID: {}", chatRoom.getId());
@@ -382,7 +382,7 @@ public class ChatRoomService {
             }
         } else {  // 생성자가 아니라면
             chatRoomMemberRepository.deleteByChatRoomAndUser(chatRoom, user);
-            logger.info("User {} left the chatting room ID: {}", user.getUsername(), chatRoom.getId());
+            logger.info("User {} left the chatting room ID: {}", user.getId(), chatRoom.getId());
             return ResponseEntity.ok(new ResponseDTO("Chatting room left successfully"));
         }
     }

@@ -53,16 +53,16 @@ public class AuthService {
      * @throws UsernameNotFoundException 사용자 정보를 찾을 수 없는 경우
      */
     public UserDetails loadUserByUsername(String username) {
-        logger.info("Attempting to load user by username: {}", username);
+        logger.debug("User lookup requested");
 
         // 사용자 찾기
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> {
-                    logger.error("User not found with username: {}", username);
-                    return new UsernameNotFoundException("User not found with username: " + username);
+                    logger.warn("User lookup failed");
+                    return new UsernameNotFoundException("User not found");
                 });
 
-        logger.info("User found: {}", username);
+        logger.info("User found; userId={}", user.getId());
 
         return org.springframework.security.core.userdetails.User.builder() // UserDetails 객체 생성
                 .username(user.getUsername()) // 사용자 이름 설정
@@ -78,7 +78,7 @@ public class AuthService {
      * @return 회원 가입 결과 응답
      */
     public ResponseEntity<?> register(AuthDTO authDTO) {
-        logger.info("Attempting to register user with email: {}", authDTO.getEmail());
+        logger.info("Registration requested");
 
         // 사용자 이름이 비어 있는지 확인
         if (!StringUtils.hasText(authDTO.getUsername())) {
@@ -101,7 +101,7 @@ public class AuthService {
         // 사용자 이름 또는 이메일이 이미 존재하는지 확인
         if (userRepository.findByUsername(authDTO.getUsername()).isPresent() ||
                 userRepository.findByEmail(authDTO.getEmail()).isPresent()) {
-            logger.warn("Username or Email already exists: {}", authDTO.getEmail());
+            logger.warn("Registration rejected: duplicate account");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                     "message", "Username or Email already exists"
             ));
@@ -128,7 +128,7 @@ public class AuthService {
      * @return 로그인 결과에 대한 응답
      */
     public ResponseEntity<?> login(AuthDTO authDTO) {
-        logger.info("Attempting to login user with email: {}", authDTO.getEmail());
+        logger.info("Login requested");
 
         // 이메일이 비어 있는지 확인하고 이메일 형식 검사
         if (!StringUtils.hasText(authDTO.getEmail()) || !authDTO.getEmail().contains("@")) {
@@ -145,20 +145,20 @@ public class AuthService {
         // 이메일로 사용자 찾기
         Optional<User> userOpt = userRepository.findByEmail(authDTO.getEmail());
         if (userOpt.isEmpty()) {
-            logger.error("Invalid email or password for email: {}", authDTO.getEmail());
+            logger.warn("Login failed: invalid credentials");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email"));
         }
         User user = userOpt.get();
 
         // 해당 이메일 사용자의 비밀번호 검증
         if (!passwordEncoder.matches(authDTO.getPassword(), user.getPasswordHash())) {
-            logger.error("Invalid email or password for email: {}", authDTO.getEmail());
+            logger.warn("Login failed: invalid credentials");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid password"));
         }
 
         // JWT 토큰 생성
         String token = jwtUtil.generateToken(user.getId());
-        logger.info("Login successful for email: {}", authDTO.getEmail());
+        logger.info("LOGIN_SUCCEEDED userId={}", user.getId());
 
         return ResponseEntity.ok(Map.of(
                 "message", "Login is successfully",
@@ -175,7 +175,7 @@ public class AuthService {
      */
     @Transactional
     public ResponseEntity<?> deleteUser(String token) {
-        logger.info("Attempting to delete user with token: {}", token);
+        logger.info("User deletion requested");
 
         // JWT에서 사용자 ID 추출
         Long userId = jwtUtil.extractUserId(token);

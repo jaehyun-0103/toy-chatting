@@ -60,7 +60,7 @@ public class MessageService {
      * @return 전송 결과를 포함한 ResponseEntity
      */
     public MessageResponseDTO sendMessage(Long userId, Long chatroomId, MessageSendRequestDTO sendRequestDTO) {
-        logger.info("Attempting to send message to chatting room ID: {} with content: {}", chatroomId, sendRequestDTO.getContent());
+        logger.info("Message send requested; userId={} roomId={}", userId, chatroomId);
 
         // content가 비어 있는지 확인
         if (sendRequestDTO.getContent() == null || sendRequestDTO.getContent().trim().isEmpty()) {
@@ -75,7 +75,7 @@ public class MessageService {
             throw new MessagingException("User not found");
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 채팅방 조회
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
@@ -84,12 +84,12 @@ public class MessageService {
             throw new MessagingException("Chat room not found");
         }
         ChatRoom chatRoom = chatRoomOpt.get();
-        logger.info("Chatting room found: {} (ChatRoom ID: {})", chatRoom.getTitle(), chatRoom.getId());
+        logger.info("Chatting room found; roomId={}", chatRoom.getId());
 
         // 사용자가 채팅방의 멤버인지 확인
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (!isMember) {
-            logger.warn("User {} is not a member of chatting room ID: {}", user.getUsername(), chatRoom.getId());
+            logger.warn("User {} is not a member of chatting room ID: {}", user.getId(), chatRoom.getId());
             throw new MessagingException("User is not a member of the chat room");
         }
 
@@ -99,7 +99,7 @@ public class MessageService {
         message.setUser(user);
         message.setContent(sendRequestDTO.getContent());
         messageRepository.save(message);
-        logger.info("Message sent successfully by user {} to chatting room ID: {} with content: {}", user.getUsername(), chatRoom.getId(), sendRequestDTO.getContent());
+        logger.info("MESSAGE_SENT userId={} roomId={} messageId={}", user.getId(), chatRoom.getId(), message.getId());
 
         // response
         MessageResponseDTO responseDTO = new MessageResponseDTO(
@@ -134,7 +134,7 @@ public class MessageService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 채팅방 조회
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
@@ -143,15 +143,15 @@ public class MessageService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Chatting room not found");
         }
         ChatRoom chatRoom = chatRoomOpt.get();
-        logger.info("Chatting room found: {} (ChatRoom ID: {})", chatRoom.getTitle(), chatRoom.getId());
+        logger.info("Chatting room found; roomId={}", chatRoom.getId());
 
         // 사용자가 채팅방의 멤버인지 확인
         boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
         if (!isMember) {
-            logger.warn("User {} is not a member of chatting room ID: {}", user.getUsername(), chatRoom.getId());
+            logger.warn("User {} is not a member of chatting room ID: {}", user.getId(), chatRoom.getId());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not a member of the chatting room");
         }
-        logger.info("User {} is a member of chatting room ID: {}", user.getUsername(), chatRoom.getId());
+        logger.info("User {} is a member of chatting room ID: {}", user.getId(), chatRoom.getId());
 
         // 모든 메시지 조회
         List<Message> messages = messageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom);
@@ -197,7 +197,7 @@ public class MessageService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found: {}", user.getId());
 
         // 메시지 조회
         Optional<Message> messageOpt = messageRepository.findById(messageId);
@@ -206,19 +206,19 @@ public class MessageService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Message not found"));
         }
         Message message = messageOpt.get();
-        logger.info("Message found: {} (Message ID: {})", message.getContent(), message.getId());
+        logger.info("Message found; messageId={} roomId={}", message.getId(), message.getChatRoom().getId());
 
         // 사용자가 해당 메시지의 작성자인지 확인
         if (!message.getUser().equals(user)) {
-            logger.warn("User {} is not authorized to edit message ID: {}", user.getUsername(), messageId);
+            logger.warn("User {} is not authorized to edit message ID: {}", user.getId(), messageId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User not authorized to edit this message"));
         }
-        logger.info("User {} is authorized to edit message ID: {}", user.getUsername(), messageId);
+        logger.info("User {} is authorized to edit message ID: {}", user.getId(), messageId);
 
         // 메시지 내용 수정
         message.setContent(updateRequestDTO.getContent());
         messageRepository.save(message);
-        logger.info("Message ID: {} updated successfully", messageId);
+        logger.info("MESSAGE_UPDATED userId={} roomId={} messageId={}", user.getId(), chatroomId, messageId);
 
         return ResponseEntity.ok(new ResponseDTO("Message updated successfully"));
     }

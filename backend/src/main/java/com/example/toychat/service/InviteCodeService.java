@@ -85,7 +85,7 @@ public class InviteCodeService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new InviteCodeCreateResponseDTO("User not found", null));
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found for ID: {}", user.getId());
 
         // 채팅방 찾기 (비관적 락을 적용하여 같은 방의 발급 요청 직렬화)
         Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findByIdWithLock(createRequestDTO.getChatroomId());
@@ -99,7 +99,7 @@ public class InviteCodeService {
 
         // 채팅방 생성자인지 확인
         if (!chatRoom.getCreator().equals(user)) {
-            logger.warn("User {} is not the creator of chatting room {}", user.getUsername(), chatRoom.getId());
+            logger.warn("User ID {} is not the creator of chatting room {}", user.getId(), chatRoom.getId());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new InviteCodeCreateResponseDTO("User is not the creator of this chatting room", null));
         }
 
@@ -120,7 +120,7 @@ public class InviteCodeService {
 
         // 8자리 랜덤 코드 생성
         String code = generateInviteCode();
-        logger.debug("Generated invite code: {}", code);
+        logger.debug("Generated invite code for chatting room ID: {}", chatRoom.getId());
 
         // 초대코드 정보 추가
         InviteCode newInviteCode = new InviteCode();
@@ -136,7 +136,7 @@ public class InviteCodeService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "INVITE_CODE_GENERATION_RETRY");
         }
 
-        logger.info("Invite code {} created successfully for chatting room ID: {}", code, chatRoom.getId());
+        logger.info("Invite code created successfully for chatting room ID: {}", chatRoom.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(new InviteCodeCreateResponseDTO("Invite code created successfully", code));
     }
 
@@ -149,7 +149,7 @@ public class InviteCodeService {
      */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public ResponseEntity<ResponseDTO> joinByInviteCode(String token, InviteCodeJoinRequestDTO joinRequestDTO) {
-        logger.info("Attempting to join chatting room using invite code: {}", joinRequestDTO.getInviteCode());
+        logger.info("Attempting to join chatting room using invite code");
 
         // invite_code가 비어 있는지 확인
         if (joinRequestDTO.getInviteCode() == null) {
@@ -173,7 +173,7 @@ public class InviteCodeService {
         String code = joinRequestDTO.getInviteCode().trim().toUpperCase(Locale.ROOT);
 
         if (!code.matches("(?:[0-9]{6}|[A-Z0-9]{8})")) {
-            logger.warn("Invalid invite code format: {}", code);
+            logger.warn("Invalid invite code format for user ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Invalid or expired invite code"));
         }
 
@@ -184,13 +184,13 @@ public class InviteCodeService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();
-        logger.info("User found: {}", user.getUsername());
+        logger.info("User found for ID: {}", user.getId());
 
         // 초대 코드 조회 및 대상 채팅방 ID 확인
         Optional<InviteCode> inviteCodeOpt = inviteCodeRepository.findByInviteCode(code);
 
         if (inviteCodeOpt.isEmpty()) {
-            logger.warn("Invalid or expired invite code: {}", code);
+            logger.warn("Invalid or expired invite code for user ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Invalid or expired invite code"));
         }
 
@@ -204,19 +204,19 @@ public class InviteCodeService {
         }
 
         ChatRoom chatRoom = chatRoomOpt.get();
-        logger.info("Chatting room found for invite code: {} (ChatRoom ID: {})", code, chatRoom.getId());
+        logger.info("Chatting room found for ID: {}", chatRoom.getId());
 
         // 초대 코드 유효성 및 만료 여부 재확인
         Optional<InviteCode> currentCode = inviteCodeRepository.findByInviteCode(code);
 
         if (currentCode.isEmpty() || !currentCode.get().getChatRoom().getId().equals(chatRoom.getId()) || !currentCode.get().getExpirationDate().isAfter(LocalDateTime.now())) {
-            logger.warn("Invalid or expired invite code after lock acquisition: {}", code);
+            logger.warn("Invalid or expired invite code after lock acquisition for chatting room ID: {}", chatRoom.getId());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Invalid or expired invite code"));
         }
 
         // 사용자가 채팅방의 멤버인지 확인
         if (chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user)) {
-            logger.warn("User {} is already a member of chatting room ID: {}", user.getUsername(), chatRoom.getId());
+            logger.warn("User ID {} is already a member of chatting room ID: {}", user.getId(), chatRoom.getId());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User is already a member of this chatting room"));
         }
 
@@ -232,7 +232,7 @@ public class InviteCodeService {
         member.setChatRoom(chatRoom);
         member.setUser(user);
         chatRoomMemberRepository.save(member);
-        logger.info("User {} successfully joined chatting room ID: {} using invite code", user.getUsername(), chatRoom.getId());
+        logger.info("User ID {} successfully joined chatting room ID: {} using invite code", user.getId(), chatRoom.getId());
 
         return ResponseEntity.ok(new ResponseDTO("Joined chatting room successfully using invite code"));
     }
