@@ -16,6 +16,25 @@ interface MessageType {
   updated_at: string;
 }
 
+const messageTimeKey = (value: string): string => {
+  const [seconds, fraction = ""] = value.split(".");
+  return `${seconds}.${fraction.padEnd(9, "0")}`;
+};
+
+const mergeMessages = (current: MessageType[], incoming: MessageType[]): MessageType[] => {
+  const merged = new Map<number, MessageType>(current.map((message): [number, MessageType] => [message.message_id, message]));
+
+  incoming.forEach((message) => {
+    const previous = merged.get(message.message_id);
+
+    if (!previous || messageTimeKey(message.updated_at) >= messageTimeKey(previous.updated_at)) {
+      merged.set(message.message_id, message);
+    }
+  });
+
+  return Array.from(merged.values()).sort((a, b) => a.message_id - b.message_id);
+};
+
 interface MemberType {
   user_id: number;
   username: string;
@@ -49,41 +68,57 @@ const ChatRoom: React.FC = () => {
   const messageEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchMessagesAndMembers = async () => {
-      const token = localStorage.getItem("token");
+    let active = true;
 
+    setMessages([]);
+    setMembers([]);
+    setConnected(false);
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setLoading(false);
+
+      return () => {
+        active = false;
+      };
+    }
+
+    const fetchMessagesAndMembers = async () => {
       setLoading(true);
 
       try {
         const messagesResponse = await axios.get<MessageType[]>(`/api/messages/${roomId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setMessages(messagesResponse.data);
+
+        if (active) {
+          setMessages((previous) => mergeMessages(previous, messagesResponse.data));
+        }
 
         const membersResponse = await axios.get<MemberType[]>(`/api/chatrooms/${roomId}/members`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setMembers(membersResponse.data);
+
+        if (active) {
+          setMembers(membersResponse.data);
+        }
       } catch (error: any) {
-        Swal.fire({
-          icon: "error",
-          title: "채팅방 로딩 실패",
-          text: error.response?.data?.message || error.message,
-        });
+        if (active) {
+          Swal.fire({
+            icon: "error",
+            title: "채팅방 로딩 실패",
+            text: error.response?.data?.message || error.message,
+          });
+        }
       } finally {
-        setLoading(false);
-        scrollToBottom();
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchMessagesAndMembers();
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setConnected(false);
-      return;
-    }
+    void fetchMessagesAndMembers();
 
     const websocketUrl = new URL("/ws", window.location.href);
     websocketUrl.protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -94,28 +129,42 @@ const ChatRoom: React.FC = () => {
     stompClient.reconnectDelay = 0;
 
     stompClient.onWebSocketClose = () => {
-      setConnected(false);
+      if (active) {
+        setConnected(false);
+      }
     };
 
     stompClient.onWebSocketError = () => {
-      setConnected(false);
+      if (active) {
+        setConnected(false);
+      }
     };
 
     stompClient.connect(
       { Authorization: `Bearer ${token}` },
       () => {
+        if (!active) {
+          void stompClient.deactivate();
+          return;
+        }
+
         setConnected(true);
 
-        stompClient.subscribe(
-          `/topic/public/${roomId}`,
-          (message: any) => {
-            const received: MessageType = JSON.parse(message.body);
-
-            setMessages((prev) => [...prev, received]);
+        stompClient.subscribe(`/topic/public/${roomId}`, (message: any) => {
+          if (!active) {
+            return;
           }
-        );
+
+          const received: MessageType = JSON.parse(message.body);
+
+          setMessages((previous) => mergeMessages(previous, [received]));
+        });
       },
       () => {
+        if (!active) {
+          return;
+        }
+
         setConnected(false);
 
         Swal.fire({
@@ -125,12 +174,13 @@ const ChatRoom: React.FC = () => {
         });
 
         void stompClient.deactivate();
-      }
+      },
     );
 
     setClient(stompClient);
 
     return () => {
+      active = false;
       void stompClient.deactivate();
     };
   }, [roomId]);
@@ -153,11 +203,7 @@ const ChatRoom: React.FC = () => {
       return;
     }
 
-    client.send(
-      `/app/chat.sendMessage/${roomId}`,
-      {},
-      JSON.stringify({ content })
-    );
+    client.send(`/app/chat.sendMessage/${roomId}`, {}, JSON.stringify({ content }));
 
     setContent("");
   };
@@ -169,34 +215,52 @@ const ChatRoom: React.FC = () => {
 
   const handleUpdateMessage = async () => {
     const token = localStorage.getItem("token");
-    if (editingMessageId !== null && editingContent !== "") {
+    const messageId = editingMessageId;
+    const nextContent = editingContent;
+
+    if (messageId === null || !nextContent.trim()) {
+      return;
+    }
+
+    try {
+      const response = await axios.put<{ message: string }>(
+        `/api/messages/${roomId}/${messageId}`,
+        { content: nextContent },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      setEditingMessageId(null);
+      setEditingContent("");
+
+      // 요청자 화면은 이력 재조회로도 저장 결과를 확인합니다.
       try {
-        const response = await axios.put<{ message: string }>(
-          `/api/messages/${roomId}/${editingMessageId}`,
-          { content: editingContent },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        Swal.fire({
-          icon: "success",
-          title: "수정 성공",
-          text: response.data.message,
+        const messagesResponse = await axios.get<MessageType[]>(`/api/messages/${roomId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setMessages(
-          messages.map((msg) =>
-            msg.message_id === editingMessageId ? { ...msg, content: editingContent, updated_at: new Date().toISOString() } : msg
-          )
-        );
-        setEditingMessageId(null);
-        setEditingContent("");
-      } catch (error: any) {
+
+        setMessages((previous) => mergeMessages(previous, messagesResponse.data));
+      } catch {
         Swal.fire({
-          icon: "error",
-          title: "메시지 수정 실패",
-          text: error.response?.data?.message || error.message,
+          icon: "warning",
+          title: "수정은 저장됐습니다",
+          text: "최신 메시지를 다시 불러오지 못했습니다. 방에 재접속해주세요.",
         });
+        return;
       }
+
+      Swal.fire({
+        icon: "success",
+        title: "수정 성공",
+        text: response.data.message,
+      });
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "메시지 수정 실패",
+        text: error.response?.data?.message || error.message,
+      });
     }
   };
 
@@ -237,7 +301,7 @@ const ChatRoom: React.FC = () => {
       const response = await axios.post<{ message: string; invite_code: string }>(
         `/api/invite/create`,
         { chatroom_id: roomId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       Swal.fire({
         icon: "info",
@@ -593,7 +657,9 @@ const Member = styled.div`
   margin-bottom: 12px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, background-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    background-color 0.3s ease;
   cursor: pointer;
   &:hover {
     background-color: #f1f1f1;

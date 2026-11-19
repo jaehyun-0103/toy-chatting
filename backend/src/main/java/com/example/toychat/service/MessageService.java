@@ -16,15 +16,20 @@ import com.example.toychat.repository.UserRepository;
 
 import com.example.toychat.security.JwtUtil;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.transaction.Transactional;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -50,6 +55,12 @@ public class MessageService {
 
     @Autowired
     private JwtUtil jwtUtil; // JWT 유틸리티 주입
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * 채팅방에서 사용자가 메시지를 전송합니다.
@@ -180,10 +191,7 @@ public class MessageService {
 
         // content가 비어 있는지 확인
         if (updateRequestDTO.getContent() == null || updateRequestDTO.getContent().trim().isEmpty()) {
-            logger.error("Content is null for message update request");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new ResponseDTO("Invalid content")
-            );
+            return ResponseEntity.badRequest().body(new ResponseDTO("Invalid content"));
         }
 
         // 토큰에서 사용자 ID 추출
@@ -206,10 +214,23 @@ public class MessageService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Message not found"));
         }
         Message message = messageOpt.get();
-        logger.info("Message found; messageId={} roomId={}", message.getId(), message.getChatRoom().getId());
+        Long actualRoomId = message.getChatRoom().getId();
+        logger.info("Message found; messageId={} roomId={}", message.getId(), actualRoomId);
+
+        // 해당 채팅방의 메시지인지 확인
+        if (!actualRoomId.equals(chatroomId)) {
+            logger.warn("Message ID: {} does not belong to chatting room ID: {}", messageId, chatroomId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("Message not found in this chatting room"));
+        }
+
+        // 사용자가 채팅방의 멤버인지 확인
+        if (!chatRoomMemberRepository.existsByChatRoomAndUser(message.getChatRoom(), user)) {
+            logger.warn("User {} is not a member of chatting room ID: {}", user.getId(), actualRoomId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User is not a member of this chatting room"));
+        }
 
         // 사용자가 해당 메시지의 작성자인지 확인
-        if (!message.getUser().equals(user)) {
+        if (!message.getUser().getId().equals(user.getId())) {
             logger.warn("User {} is not authorized to edit message ID: {}", user.getId(), messageId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ResponseDTO("User not authorized to edit this message"));
         }
@@ -217,8 +238,36 @@ public class MessageService {
 
         // 메시지 내용 수정
         message.setContent(updateRequestDTO.getContent());
-        messageRepository.save(message);
-        logger.info("MESSAGE_UPDATED userId={} roomId={} messageId={}", user.getId(), chatroomId, messageId);
+        messageRepository.saveAndFlush(message);
+
+        // DB 저장 시각 반영을 위해 엔티티 새로고침
+        entityManager.refresh(message);
+
+        // 커밋 후 전송을 위한 응답 DTO 스냅샷 생성
+        MessageResponseDTO snapshot = new MessageResponseDTO(
+                message.getId(),
+                user.getUsername(),
+                user.getId(),
+                message.getContent(),
+                message.getUpdatedAt()
+        );
+
+        // 트랜잭션 커밋 후 메시지 브로드캐스트
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        logger.info("MESSAGE_UPDATED userId={} roomId={} messageId={}", snapshot.getUserId(), actualRoomId, snapshot.getMessageId());
+
+                        try {
+                            messagingTemplate.convertAndSend("/topic/public/" + actualRoomId,snapshot);
+                        } catch (RuntimeException ex) {
+                            // DB 커밋 이후 브로드캐스트 실패 로그 기록
+                            logger.warn("MESSAGE_UPDATE_BROADCAST_FAILED roomId={} messageId={}", actualRoomId, snapshot.getMessageId());
+                        }
+                    }
+                }
+        );
 
         return ResponseEntity.ok(new ResponseDTO("Message updated successfully"));
     }
