@@ -4,6 +4,8 @@ import com.example.toychat.dto.AuthDTO;
 
 import com.example.toychat.entity.User;
 
+import com.example.toychat.repository.ChatRoomMemberRepository;
+import com.example.toychat.repository.ChatRoomRepository;
 import com.example.toychat.repository.UserRepository;
 
 import com.example.toychat.security.JwtUtil;
@@ -18,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
@@ -30,6 +33,12 @@ public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ChatRoomRepository chatRoomRepository;
+
+    @Autowired
+    private ChatRoomMemberRepository chatRoomMemberRepository;
 
     @Autowired
     private JwtUtil jwtUtil; // JWT 유틸리티 주입
@@ -164,6 +173,7 @@ public class AuthService {
      * @param token JWT 토큰
      * @return 사용자 탈퇴 결과 응답
      */
+    @Transactional
     public ResponseEntity<?> deleteUser(String token) {
         logger.info("Attempting to delete user with token: {}", token);
 
@@ -179,15 +189,21 @@ public class AuthService {
         }
         User user = userOpt.get();
 
-        // 사용자 참여한 채팅방 확인
-        if (!user.getChatRooms().isEmpty()) {
-            logger.error("User still participates in chat rooms: {}", username);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "User must leave all chat rooms before deleting account"));
+        // 사용자가 생성한 채팅방이 존재하는지 확인
+        if (chatRoomRepository.existsByCreator_Id(user.getId())) {
+            logger.warn("User {} still owns chat rooms and cannot delete account", username);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "USER_OWNS_CHATROOMS"));
         }
+
+        // 사용자가 참여한 채팅방 멤버십 삭제
+        chatRoomMemberRepository.deleteByUser(user);
+        chatRoomMemberRepository.flush();
+        logger.debug("Deleted chat room memberships for user: {}", username);
 
         // 사용자 삭제
         userRepository.delete(user);
-        logger.info("User deleted successfully: {}", username);
+        userRepository.flush();
+        logger.info("User deleted successfully: {} (ID: {})", username, user.getId());
 
         return ResponseEntity.ok(Map.of(
                 "message", "User deleted successfully"
