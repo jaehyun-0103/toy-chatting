@@ -28,4 +28,22 @@ public class ChatRoomListResponseDTO {
 
     @JsonProperty("current_members")
     private int currentMembers;  // 현재 참여 인원 수
+
+    public ChatRoomListResponseDTO(
+            Long chatroomId,
+            Long creatorId,
+            String title,
+            int maxMembers,
+            boolean isPrivate,
+            Long currentMembers
+    ) {
+        this(
+                chatroomId,
+                creatorId,
+                title,
+                maxMembers,
+                isPrivate,
+                Math.toIntExact(currentMembers)
+        );
+    }
 }

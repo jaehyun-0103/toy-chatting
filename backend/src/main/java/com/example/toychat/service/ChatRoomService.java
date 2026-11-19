@@ -199,37 +199,18 @@ public class ChatRoomService {
         logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
+        if (userRepository.findById(userId).isEmpty()) {
             logger.error("User not found for ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
 
-        // 모든 채팅방 조회
-        List<ChatRoom> chatRooms = chatRoomRepository.findAll();
-        logger.info("Retrieved {} chatting rooms", chatRooms.size());
+        // 공개 채팅방 목록 조회
+        List<ChatRoomListResponseDTO> response = chatRoomRepository.findPublicRoomSummaries();
+        logger.info("Retrieved {} chatting rooms", response.size());
 
         // response
-        List<ChatRoomListResponseDTO> responseDTOs = chatRooms.stream()
-                .filter(chatRoom -> !chatRoom.isPrivate())
-                .map(chatRoom -> {
-                    // 채팅방에 참여한 인원 수 계산
-                    int currentMembers = chatRoomMemberRepository.countByChatRoom(chatRoom);
-                    logger.debug("Chatting room ID: {} has {} current members", chatRoom.getId(), currentMembers);
-
-                    return new ChatRoomListResponseDTO(
-                            chatRoom.getId(),
-                            chatRoom.getCreator().getId(),
-                            chatRoom.getTitle(),
-                            chatRoom.getMaxMembers(),
-                            chatRoom.isPrivate(),
-                            currentMembers
-                    );
-                })
-                .collect(Collectors.toList());
-
-        logger.info("Returning response with {} chatting rooms", responseDTOs.size());
-        return ResponseEntity.ok(responseDTOs);
+        logger.info("Returning response with {} chatting rooms", response.size());
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -246,38 +227,19 @@ public class ChatRoomService {
         logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
+        if (userRepository.findById(userId).isEmpty()) {
             logger.error("User not found for ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
-        User user = userOpt.get();
-        logger.info("User found: {}", user.getId());
+        logger.info("User found: {}", userId);
 
         // 사용자가 참여한 채팅방 목록 조회
-        List<ChatRoom> chatRooms = chatRoomMemberRepository.findChatRoomsByUser(user);
-        logger.info("User {} is a member of {} chatting rooms", user.getId(), chatRooms.size());
+        List<ChatRoomListResponseDTO> response = chatRoomRepository.findJoinedRoomSummaries(userId);
+        logger.info("User {} is a member of {} chatting rooms", userId, response.size());
 
         // response
-        List<ChatRoomListResponseDTO> responseDTOs = chatRooms.stream()
-                .map(chatRoom -> {
-                    // 채팅방에 참여한 인원 수 계산
-                    int currentMembers = chatRoomMemberRepository.countByChatRoom(chatRoom);
-                    logger.debug("Chatting room ID: {} has {} current members", chatRoom.getId(), currentMembers);
-
-                    return new ChatRoomListResponseDTO(
-                            chatRoom.getId(),
-                            chatRoom.getCreator().getId(),
-                            chatRoom.getTitle(),
-                            chatRoom.getMaxMembers(),
-                            chatRoom.isPrivate(),
-                            currentMembers
-                    );
-                })
-                .collect(Collectors.toList());
-
-        logger.info("Returning response with {} chatting rooms for user {}", responseDTOs.size(), user.getId());
-        return ResponseEntity.ok(responseDTOs);
+        logger.info("Returning response with {} chatting rooms for user {}", response.size(), userId);
+        return ResponseEntity.ok(response);
     }
 
     /**

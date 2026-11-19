@@ -34,7 +34,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
@@ -165,13 +164,8 @@ public class MessageService {
         logger.info("User {} is a member of chatting room ID: {}", user.getId(), chatRoom.getId());
 
         // 모든 메시지 조회
-        List<Message> messages = messageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom);
-        logger.info("Found {} messages in chatting room ID: {}", messages.size(), chatRoom.getId());
-
-        // response
-        List<MessageResponseDTO> response = messages.stream()
-                .map(msg -> new MessageResponseDTO(msg.getId(), msg.getUser().getUsername(), msg.getUser().getId(), msg.getContent(), msg.getUpdatedAt()))
-                .collect(Collectors.toList());
+        List<MessageResponseDTO> response = messageRepository.findMessageResponsesByChatRoomId(chatRoom.getId());
+        logger.info("Found {} messages in chatting room ID: {}", response.size(), chatRoom.getId());
 
         return ResponseEntity.ok(response);
     }
