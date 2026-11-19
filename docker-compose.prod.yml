@@ -10,6 +10,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
     networks:
       - chatting
 

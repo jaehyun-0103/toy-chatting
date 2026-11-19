@@ -157,7 +157,7 @@ public class AuthService {
         }
 
         // JWT 토큰 생성
-        String token = jwtUtil.generateToken(user.getUsername());
+        String token = jwtUtil.generateToken(user.getId());
         logger.info("Login successful for email: {}", authDTO.getEmail());
 
         return ResponseEntity.ok(Map.of(
@@ -177,33 +177,33 @@ public class AuthService {
     public ResponseEntity<?> deleteUser(String token) {
         logger.info("Attempting to delete user with token: {}", token);
 
-        // JWT에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // JWT에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for deletion: {}", username);
+            logger.error("User not found for deletion with ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User does not exist"));
         }
         User user = userOpt.get();
 
         // 사용자가 생성한 채팅방이 존재하는지 확인
         if (chatRoomRepository.existsByCreator_Id(user.getId())) {
-            logger.warn("User {} still owns chat rooms and cannot delete account", username);
+            logger.warn("User ID {} still owns chat rooms and cannot delete account", user.getId());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "USER_OWNS_CHATROOMS"));
         }
 
         // 사용자가 참여한 채팅방 멤버십 삭제
         chatRoomMemberRepository.deleteByUser(user);
         chatRoomMemberRepository.flush();
-        logger.debug("Deleted chat room memberships for user: {}", username);
+        logger.debug("Deleted chat room memberships for user ID: {}", user.getId());
 
         // 사용자 삭제
         userRepository.delete(user);
         userRepository.flush();
-        logger.info("User deleted successfully: {} (ID: {})", username, user.getId());
+        logger.info("User deleted successfully with ID: {}", user.getId());
 
         return ResponseEntity.ok(Map.of(
                 "message", "User deleted successfully"

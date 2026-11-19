@@ -65,14 +65,14 @@ public class InviteCodeService {
             );
         }
 
-        // 토큰에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // 토큰에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new InviteCodeCreateResponseDTO("User not found", null));
         }
         User user = userOpt.get();
@@ -140,14 +140,14 @@ public class InviteCodeService {
             );
         }
 
-        // 토큰에서 사용자 이름 추출
-        String username = jwtUtil.extractUsername(token);
-        logger.debug("Extracted username from JWT: {}", username);
+        // 토큰에서 사용자 ID 추출
+        Long userId = jwtUtil.extractUserId(token);
+        logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 찾기
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            logger.error("User not found for username: {}", username);
+            logger.error("User not found for ID: {}", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ResponseDTO("User not found"));
         }
         User user = userOpt.get();
