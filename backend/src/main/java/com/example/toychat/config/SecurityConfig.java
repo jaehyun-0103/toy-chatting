@@ -2,6 +2,7 @@ package com.example.toychat.config;
 
 import com.example.toychat.security.JwtFilter;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,6 +60,7 @@ public class SecurityConfig {
                         )
                 )
                 .authorizeHttpRequests(authz -> authz
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/register", "/api/login").permitAll() // 등록 및 로그인 API는 인증 없이 접근 허용
                         .requestMatchers("/ws/**").permitAll() // WebSocket 핸드셰이크 경로 접근 허용
                         .anyRequest().authenticated() // 그 외 모든 요청은 인증 필요
