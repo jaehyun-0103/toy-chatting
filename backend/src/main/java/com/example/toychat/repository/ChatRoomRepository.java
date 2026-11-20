@@ -3,6 +3,8 @@ package com.example.toychat.repository;
 import com.example.toychat.dto.response.ChatRoomListResponseDTO;
 import com.example.toychat.entity.ChatRoom;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -23,23 +25,31 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
     // 공개 채팅방 목록 요약 정보 조회
     @Query("""
-            SELECT new com.example.toychat.dto.response.ChatRoomListResponseDTO(
-                c.id,
-                c.creator.id,
-                c.title,
-                c.maxMembers,
-                c.isPrivate,
-                COUNT(m.id)
-            )
+            SELECT c.id
             FROM ChatRoom c
-            LEFT JOIN c.members m
             WHERE c.isPrivate = false
-            GROUP BY c.id, c.creator.id, c.title, c.maxMembers, c.isPrivate
-            ORDER BY c.id
+            ORDER BY c.id DESC
             """)
-    List<ChatRoomListResponseDTO> findPublicRoomSummaries();
+    Slice<Long> findPublicRoomIds(Pageable pageable);
 
-    // 사용자가 참여한 채팅방 목록 요약 정보 조회
+    // 사용자가 참여한 채팅방 ID 목록을 내림차순으로 조회
+    @Query("""
+            SELECT c.id
+            FROM ChatRoom c
+            WHERE EXISTS (
+                SELECT crm.id
+                FROM ChatRoomMember crm
+                WHERE crm.chatRoom = c
+                  AND crm.user.id = :userId
+            )
+            ORDER BY c.id DESC
+            """)
+    Slice<Long> findJoinedRoomIds(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+    // 채팅방 ID 목록으로 채팅방 요약 정보 조회
     @Query("""
             SELECT new com.example.toychat.dto.response.ChatRoomListResponseDTO(
                 c.id,
@@ -51,16 +61,11 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
             )
             FROM ChatRoom c
             LEFT JOIN c.members m
-            WHERE EXISTS (
-                SELECT mine.id
-                FROM ChatRoomMember mine
-                WHERE mine.chatRoom = c
-                  AND mine.user.id = :userId
-            )
+            WHERE c.id IN (:roomIds)
             GROUP BY c.id, c.creator.id, c.title, c.maxMembers, c.isPrivate
-            ORDER BY c.id
+            ORDER BY c.id DESC
             """)
-    List<ChatRoomListResponseDTO> findJoinedRoomSummaries(
-            @Param("userId") Long userId
+    List<ChatRoomListResponseDTO> findRoomSummaries(
+            @Param("roomIds") List<Long> roomIds
     );
 }

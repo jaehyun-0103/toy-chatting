@@ -1,6 +1,7 @@
 package com.example.toychat.controller;
 
 import com.example.toychat.dto.response.ChatRoomListResponseDTO;
+import com.example.toychat.dto.response.RoomPageResponseDTO;
 import com.example.toychat.entity.ChatRoom;
 import com.example.toychat.service.ChatRoomService;
 
@@ -48,20 +49,19 @@ public class ChatRoomListControllerTest {
         chatRoom.setMaxMembers(10);
         chatRoom.setPrivate(false);
 
-        when(chatRoomService.getAllChatRooms(anyString())).thenReturn(ResponseEntity.ok(
-                List.of(new ChatRoomListResponseDTO(1L, 1L,"Test Chat Room", 10, false, 2))
-        ));
+        when(chatRoomService.getAllChatRooms(anyString(), eq(0), eq(20))).thenReturn(ResponseEntity.ok(
+                new RoomPageResponseDTO(List.of(new ChatRoomListResponseDTO(1L, 1L, "Test Chat Room", 10, false, 2)), false, List.of(1L))));
 
         mockMvc.perform(get("/api/chatrooms")
                         .header("Authorization", "Bearer test_token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].chatroom_id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("Test Chat Room"))
-                .andExpect(jsonPath("$[0].max_members").value(10))
-                .andExpect(jsonPath("$[0].is_private").value(false))
-                .andExpect(jsonPath("$[0].current_members").value(2));
+                .andExpect(jsonPath("$.items[0].chatroom_id").value(1L))
+                .andExpect(jsonPath("$.items[0].title").value("Test Chat Room"))
+                .andExpect(jsonPath("$.items[0].max_members").value(10))
+                .andExpect(jsonPath("$.items[0].is_private").value(false))
+                .andExpect(jsonPath("$.items[0].current_members").value(2));
 
-        verify(chatRoomService, times(1)).getAllChatRooms(anyString());
+        verify(chatRoomService, times(1)).getAllChatRooms(anyString(), eq(0), eq(20));
     }
 
     @Test
@@ -73,19 +73,18 @@ public class ChatRoomListControllerTest {
         chatRoom.setMaxMembers(10);
         chatRoom.setPrivate(false);
 
-        when(chatRoomService.getMyChatRooms(anyString())).thenReturn(ResponseEntity.ok(
-                List.of(new ChatRoomListResponseDTO(1L, 1L,"My Chat Room", 10, false, 2))
-        ));
+        when(chatRoomService.getMyChatRooms(anyString(), eq(0), eq(20))).thenReturn(ResponseEntity.ok(
+                new RoomPageResponseDTO(List.of(new ChatRoomListResponseDTO(1L, 1L, "My Chat Room", 10, false, 2)), false, List.of(1L))));
 
         mockMvc.perform(get("/api/chatrooms/lists")
                         .header("Authorization", "Bearer test_token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].chatroom_id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("My Chat Room"))
-                .andExpect(jsonPath("$[0].max_members").value(10))
-                .andExpect(jsonPath("$[0].is_private").value(false))
-                .andExpect(jsonPath("$[0].current_members").value(2));
+                .andExpect(jsonPath("$.items[0].chatroom_id").value(1L))
+                .andExpect(jsonPath("$.items[0].title").value("My Chat Room"))
+                .andExpect(jsonPath("$.items[0].max_members").value(10))
+                .andExpect(jsonPath("$.items[0].is_private").value(false))
+                .andExpect(jsonPath("$.items[0].current_members").value(2));
 
-        verify(chatRoomService, times(1)).getMyChatRooms(anyString());
+        verify(chatRoomService, times(1)).getMyChatRooms(anyString(), eq(0), eq(20));
     }
 }

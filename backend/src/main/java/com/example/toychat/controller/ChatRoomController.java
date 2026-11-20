@@ -2,10 +2,7 @@ package com.example.toychat.controller;
 
 import com.example.toychat.dto.request.ChatRoomCreateRequestDTO;
 import com.example.toychat.dto.request.ChatRoomJoinRequestDTO;
-import com.example.toychat.dto.response.ChatRoomCreateResponseDTO;
-import com.example.toychat.dto.response.ChatRoomListResponseDTO;
-import com.example.toychat.dto.response.ChatRoomMemberResponseDTO;
-import com.example.toychat.dto.response.ResponseDTO;
+import com.example.toychat.dto.response.*;
 
 import com.example.toychat.service.ChatRoomService;
 
@@ -43,18 +40,26 @@ public class ChatRoomController {
 
     // 전체 채팅방 목록 조회
     @GetMapping
-    public ResponseEntity<List<ChatRoomListResponseDTO>> getAllChatRooms(
-            @RequestHeader("Authorization") String authorizationHeader) {
-        String token = authorizationHeader.substring(7); // "Bearer " 제거
-        return chatRoomService.getAllChatRooms(token);
+    public ResponseEntity<RoomPageResponseDTO> getAllChatRooms(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size
+    ) {
+        String token = authorizationHeader.substring(7);
+
+        return chatRoomService.getAllChatRooms(token, page, size);
     }
 
     // 사용자가 참여한 채팅방 목록 조회
     @GetMapping("/lists")
-    public ResponseEntity<List<ChatRoomListResponseDTO>> getUserChatRooms(
-            @RequestHeader("Authorization") String authorizationHeader) {
-        String token = authorizationHeader.substring(7); // "Bearer " 제거
-        return chatRoomService.getMyChatRooms(token);
+    public ResponseEntity<RoomPageResponseDTO> getUserChatRooms(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size
+    ) {
+        String token = authorizationHeader.substring(7);
+
+        return chatRoomService.getMyChatRooms(token, page, size);
     }
 
     // 채팅방의 멤버 목록을 조회

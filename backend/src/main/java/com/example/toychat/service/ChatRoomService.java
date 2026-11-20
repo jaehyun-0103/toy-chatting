@@ -17,6 +17,8 @@ import com.example.toychat.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -186,41 +188,54 @@ public class ChatRoomService {
     }
 
     /**
-     * 전체 채팅방 목록을 조회합니다.
+     * 전체 채팅방 목록을 페이지 단위로 조회합니다.
      *
      * @param token JWT 토큰
-     * @return 전체 채팅방 목록
+     * @param page  조회할 페이지 번호
+     * @param size  페이지당 채팅방 개수
+     * @return 전체 채팅방 페이지 응답
      */
-    public ResponseEntity<List<ChatRoomListResponseDTO>> getAllChatRooms(String token) {
-        logger.info("Attempting to retrieve all chatting rooms");
-
-        // JWT에서 사용자 ID 추출
-        Long userId = jwtUtil.extractUserId(token);
-        logger.debug("Extracted user ID from JWT: {}", userId);
-
-        // 사용자 찾기
-        if (userRepository.findById(userId).isEmpty()) {
-            logger.error("User not found for ID: {}", userId);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
-        }
-
-        // 공개 채팅방 목록 조회
-        List<ChatRoomListResponseDTO> response = chatRoomRepository.findPublicRoomSummaries();
-        logger.info("Retrieved {} chatting rooms", response.size());
-
-        // response
-        logger.info("Returning response with {} chatting rooms", response.size());
-        return ResponseEntity.ok(response);
+    @Transactional(readOnly = true)
+    public ResponseEntity<RoomPageResponseDTO> getAllChatRooms(String token, int page, int size) {
+        return getRoomPage(token, page, size, false);
     }
 
     /**
-     * 사용자가 참여한 채팅방 목록을 조회합니다.
+     * 사용자가 참여한 채팅방 목록을 페이지 단위로 조회합니다.
      *
      * @param token JWT 토큰
-     * @return 사용자가 참여한 채팅방 목록
+     * @param page  조회할 페이지 번호
+     * @param size  페이지당 채팅방 개수
+     * @return 사용자가 참여한 채팅방 페이지 응답
      */
-    public ResponseEntity<List<ChatRoomListResponseDTO>> getMyChatRooms(String token) {
-        logger.info("Attempting to retrieve chatting rooms for user with token");
+    @Transactional(readOnly = true)
+    public ResponseEntity<RoomPageResponseDTO> getMyChatRooms(String token, int page, int size) {
+        return getRoomPage(token, page, size, true);
+    }
+
+    /**
+     * 조건에 맞는 채팅방 목록을 페이지 단위로 조회합니다.
+     *
+     * @param token      JWT 토큰
+     * @param page       조회할 페이지 번호
+     * @param size       페이지당 채팅방 개수
+     * @param joinedOnly 참여 중인 채팅방만 조회할지 여부
+     * @return 채팅방 페이지 응답
+     */
+    private ResponseEntity<RoomPageResponseDTO> getRoomPage(String token, int page, int size, boolean joinedOnly) {
+        logger.info("Attempting to retrieve chatting rooms; joinedOnly={} page={} size={}", joinedOnly, page, size);
+
+        // 페이지 크기 유효성 확인
+        if (size < 1 || size > 100) {
+            logger.warn("Invalid page size: {}", size);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_PAGE_SIZE");
+        }
+
+        // 페이지 번호 유효성 확인
+        if (page < 0 || (long) page * size > Integer.MAX_VALUE) {
+            logger.warn("Invalid page number: {}", page);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_PAGE");
+        }
 
         // JWT에서 사용자 ID 추출
         Long userId = jwtUtil.extractUserId(token);
@@ -233,13 +248,36 @@ public class ChatRoomService {
         }
         logger.info("User found: {}", userId);
 
-        // 사용자가 참여한 채팅방 목록 조회
-        List<ChatRoomListResponseDTO> response = chatRoomRepository.findJoinedRoomSummaries(userId);
-        logger.info("User {} is a member of {} chatting rooms", userId, response.size());
+        // 페이지 요청 생성 및 채팅방 ID 목록 조회
+        PageRequest pageable = PageRequest.of(page, size);
+
+        Slice<Long> idSlice = joinedOnly
+                ? chatRoomRepository.findJoinedRoomIds(userId, pageable)
+                : chatRoomRepository.findPublicRoomIds(pageable);
+
+        List<Long> roomIds = idSlice.getContent();
+
+        // 조회된 채팅방이 없을 경우 빈 페이지 응답 반환
+        if (roomIds.isEmpty()) {
+            logger.info("Retrieved 0 chatting rooms for user {}", userId);
+            return ResponseEntity.ok(new RoomPageResponseDTO(List.of(), false, List.of()));
+        }
+
+        // 채팅방 요약 정보 조회
+        List<ChatRoomListResponseDTO> items =
+                chatRoomRepository.findRoomSummaries(roomIds);
+
+        // 현재 페이지 내 사용자가 참여한 채팅방 ID 목록 조회
+        List<Long> joinedRoomIds = joinedOnly
+                ? roomIds
+                : chatRoomMemberRepository.findJoinedRoomIdsInPage(
+                userId, roomIds
+        );
+
+        logger.info("Room page returned; userId={} joinedOnly={} page={} count={}", userId, joinedOnly, page, items.size());
 
         // response
-        logger.info("Returning response with {} chatting rooms for user {}", response.size(), userId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new RoomPageResponseDTO(items, idSlice.hasNext(), joinedRoomIds));
     }
 
     /**
