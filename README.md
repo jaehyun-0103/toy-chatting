@@ -90,27 +90,27 @@ git clone https://github.com/jaehyun-0103/toy-chatting
 
 ```
 # .env
-MYSQL_URL=
-MYSQL_USERNAME=
+MYSQL_ROOT_PASSWORD=
+MYSQL_DATABASE=chatting
+MYSQL_USER=
 MYSQL_PASSWORD=
+
+JWT_SECRET=
 ```
 
 ### Run Docker
 
 - Local Development
   ```
-  docker-compose build
-  docker-compose up
+  docker-compose up --build
   ```
 
 - Production
   ```
-  docker-compose -f docker-compose.prod.yml build
-  docker-compose -f docker-compose.prod.yml up
+  docker-compose -f docker-compose.prod.yml up --build
   ```
 
 - Testing
   ```
-  docker-compose -f docker-compose.test.yml build
-  docker-compose -f docker-compose.test.yml up
+  docker-compose -f docker-compose.test.yml up --build
   ```
