@@ -200,7 +200,7 @@ const ChatRoom: React.FC = () => {
         // 구독 요청을 보낸 뒤 최근 이력을 조회합니다.
         void loadInitial();
       },
-      () => {
+      (frame: any) => {
         if (!active) {
           return;
         }
@@ -208,10 +208,18 @@ const ChatRoom: React.FC = () => {
         setConnected(false);
         void loadInitial();
 
+        const descriptions: Record<string, string> = {
+          INVALID_MESSAGE: "메시지 형식이나 내용이 올바르지 않습니다. 확인 후 방에 다시 접속해주세요.",
+          MESSAGE_PROCESSING_FAILED: "메시지를 처리하지 못했습니다. 잠시 후 방에 다시 접속해주세요.",
+          "STOMP access denied": "로그인 상태와 채팅방 참여 권한을 확인해주세요.",
+        };
+
+        const reason = frame?.headers?.message || "";
+
         Swal.fire({
           icon: "error",
-          title: "채팅 연결 실패",
-          text: "로그인 상태와 채팅방 참여 권한을 확인해주세요.",
+          title: "채팅 요청 실패",
+          text: descriptions[reason] || "채팅 연결을 확인한 뒤 방에 다시 접속해주세요.",
         });
 
         void stompClient.deactivate();

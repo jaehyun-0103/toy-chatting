@@ -65,7 +65,7 @@ public class StompHandler implements ChannelInterceptor {
     }
 
     /**
-     * STOMP 인바운드 메시지가 채널로 전송되기 전에 인증 및 권한을 검증하고, 거부 시 ERROR 프레임을 전송합니다.
+     * STOMP 인바운드 메시지가 채널로 전송되기 전에 인증 및 권한을 검증하고, 거부 시 세션을 종료합니다.
      *
      * @param message 전송될 메시지
      * @param channel 메시지 채널
@@ -85,18 +85,32 @@ public class StompHandler implements ChannelInterceptor {
                 throw ex;
             }
 
-            String sessionId = incoming.getSessionId(); // WebSocket 세션 ID 추출
-            sessions.remove(sessionId); // 세션 저장소에서 해당 세션 제거
-
-            StompHeaderAccessor error = StompHeaderAccessor.create(StompCommand.ERROR); // STOMP ERROR 프레임 헤더 생성
-            error.setSessionId(sessionId); // 에러 대상 세션 ID 설정
-            error.setMessage("STOMP access denied"); // 에러 메시지 설정
-
-            outboundChannel.getObject().send(MessageBuilder.createMessage(new byte[0], error.getMessageHeaders()));
+            rejectSession(incoming.getSessionId(), "STOMP access denied"); // 해당 WebSocket 세션 거부 및 ERROR 프레임 전송
 
             // 거부된 원본 프레임은 서비스와 브로커로 전달하지 않음
             return null;
         }
+    }
+
+    /**
+     * 지정된 WebSocket 세션을 제거하고 클라이언트에 STOMP ERROR 프레임을 전송합니다.
+     *
+     * @param sessionId 거부할 WebSocket 세션 ID
+     * @param reason    에러 프레임에 포함할 거부 사유 메시지
+     */
+    public void rejectSession(String sessionId, String reason) {
+        if (sessionId == null) {
+            return;
+        }
+
+        sessions.remove(sessionId); // 세션 저장소에서 해당 세션 제거
+
+        StompHeaderAccessor error = StompHeaderAccessor.create(StompCommand.ERROR); // STOMP ERROR 프레임 헤더 생성
+
+        error.setSessionId(sessionId); // 에러 대상 세션 ID 설정
+        error.setMessage(reason); // 에러 메시지 설정
+
+        outboundChannel.getObject().send(MessageBuilder.createMessage(new byte[0], error.getMessageHeaders())); // 클라이언트로 ERROR 프레임 전송
     }
 
     /**
