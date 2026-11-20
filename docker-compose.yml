@@ -5,10 +5,10 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: chatting
-      MYSQL_USER: user
-      MYSQL_PASSWORD: 1234
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?MYSQL_DATABASE must be set in .env}
+      MYSQL_USER: ${MYSQL_USER:?MYSQL_USER must be set in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}
     ports:
       - "3307:3306"
     networks:
@@ -19,9 +19,9 @@ services:
     depends_on:
       - mysql
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/chatting
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:?MYSQL_DATABASE must be set in .env}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:?MYSQL_USER must be set in .env}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set in .env}
       SPRING_PROFILES_ACTIVE: local
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
     ports:
