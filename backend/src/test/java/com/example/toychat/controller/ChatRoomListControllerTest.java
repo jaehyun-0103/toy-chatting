@@ -55,11 +55,11 @@ public class ChatRoomListControllerTest {
         mockMvc.perform(get("/api/chatrooms")
                         .header("Authorization", "Bearer test_token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].chatroom_id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("Test Chat Room"))
-                .andExpect(jsonPath("$[0].max_members").value(10))
-                .andExpect(jsonPath("$[0].is_private").value(false))
-                .andExpect(jsonPath("$[0].current_members").value(2));
+                .andExpect(jsonPath("$.items[0].chatroom_id").value(1L))
+                .andExpect(jsonPath("$.items[0].title").value("Test Chat Room"))
+                .andExpect(jsonPath("$.items[0].max_members").value(10))
+                .andExpect(jsonPath("$.items[0].is_private").value(false))
+                .andExpect(jsonPath("$.items[0].current_members").value(2));
 
         verify(chatRoomService, times(1)).getAllChatRooms(anyString(), eq(0), eq(20));
     }
@@ -79,11 +79,11 @@ public class ChatRoomListControllerTest {
         mockMvc.perform(get("/api/chatrooms/lists")
                         .header("Authorization", "Bearer test_token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].chatroom_id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("My Chat Room"))
-                .andExpect(jsonPath("$[0].max_members").value(10))
-                .andExpect(jsonPath("$[0].is_private").value(false))
-                .andExpect(jsonPath("$[0].current_members").value(2));
+                .andExpect(jsonPath("$.items[0].chatroom_id").value(1L))
+                .andExpect(jsonPath("$.items[0].title").value("My Chat Room"))
+                .andExpect(jsonPath("$.items[0].max_members").value(10))
+                .andExpect(jsonPath("$.items[0].is_private").value(false))
+                .andExpect(jsonPath("$.items[0].current_members").value(2));
 
         verify(chatRoomService, times(1)).getMyChatRooms(anyString(), eq(0), eq(20));
     }
