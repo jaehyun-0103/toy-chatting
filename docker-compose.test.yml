@@ -13,11 +13,19 @@ services:
       - "3307:3306"
     networks:
       - chatting
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   spring:
     build: ./backend
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:?MYSQL_DATABASE must be set in .env}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:?MYSQL_USER must be set in .env}
