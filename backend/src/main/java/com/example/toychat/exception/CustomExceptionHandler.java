@@ -7,6 +7,7 @@ import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
@@ -55,5 +56,10 @@ public class CustomExceptionHandler {
         errorResponse.put("message", ex.getMessage());
 
         return errorResponse;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidParameter(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(Map.of("message", "Invalid query parameter", "parameter", ex.getName()));
     }
 }

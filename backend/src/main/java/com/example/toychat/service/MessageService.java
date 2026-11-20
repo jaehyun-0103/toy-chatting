@@ -2,7 +2,9 @@ package com.example.toychat.service;
 
 import com.example.toychat.dto.request.MessageSendRequestDTO;
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
+import com.example.toychat.dto.response.CursorPageResponseDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
+import com.example.toychat.dto.response.MessageUpdateResponseDTO;
 import com.example.toychat.dto.response.ResponseDTO;
 
 import com.example.toychat.entity.ChatRoom;
@@ -21,6 +23,8 @@ import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,50 +128,79 @@ public class MessageService {
     }
 
     /**
-     * 사용자가 해당 채팅방 전체 메시지를 조회합니다.
+     * 사용자가 해당 채팅방의 메시지를 커서 기반으로 조회합니다.
      *
      * @param token      사용자 인증 토큰
      * @param chatroomId 메시지를 조회할 채팅방 ID
-     * @return 메시지 리스트를 포함한 ResponseEntity
+     * @param beforeId   기준 메시지 ID (null일 경우 최신 메시지 조회)
+     * @param size       조회할 메시지 개수
+     * @return 커서 기반 메시지 페이지 응답을 포함한 ResponseEntity
      */
-    public ResponseEntity<List<MessageResponseDTO>> getMessages(String token, Long chatroomId) {
+    public ResponseEntity<CursorPageResponseDTO<MessageResponseDTO>> getMessages(String token, Long chatroomId, Long beforeId, int size) {
         logger.info("Attempting to get messages for chatting room ID: {}", chatroomId);
+
+        // 채팅방 ID 유효성 확인
+        if (chatroomId == null || chatroomId <= 0) {
+            logger.warn("Invalid chatting room ID: {}", chatroomId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_CHATROOM_ID");
+        }
+
+        // 페이지 크기 유효성 확인
+        if (size < 1 || size > 100) {
+            logger.warn("Invalid page size: {}", size);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_PAGE_SIZE");
+        }
+
+        // 커서 ID 유효성 확인
+        if (beforeId != null && beforeId <= 0) {
+            logger.warn("Invalid cursor ID: {}", beforeId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_CURSOR");
+        }
 
         // 토큰에서 사용자 ID 추출
         Long userId = jwtUtil.extractUserId(token);
         logger.debug("Extracted user ID from JWT: {}", userId);
 
         // 사용자 조회
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
+        User user = userRepository.findById(userId).orElseThrow(() -> {
             logger.error("User not found for ID: {}", userId);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
-        }
-        User user = userOpt.get();
+            return new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        });
         logger.info("User found: {}", user.getId());
 
         // 채팅방 조회
-        Optional<ChatRoom> chatRoomOpt = chatRoomRepository.findById(chatroomId);
-        if (chatRoomOpt.isEmpty()) {
+        ChatRoom chatRoom = chatRoomRepository.findById(chatroomId).orElseThrow(() -> {
             logger.error("Chatting room not found for ID: {}", chatroomId);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Chatting room not found");
-        }
-        ChatRoom chatRoom = chatRoomOpt.get();
+            return new ResponseStatusException(HttpStatus.NOT_FOUND, "Chatting room not found");
+        });
         logger.info("Chatting room found; roomId={}", chatRoom.getId());
 
         // 사용자가 채팅방의 멤버인지 확인
-        boolean isMember = chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user);
-        if (!isMember) {
+        if (!chatRoomMemberRepository.existsByChatRoomAndUser(chatRoom, user)) {
             logger.warn("User {} is not a member of chatting room ID: {}", user.getId(), chatRoom.getId());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User not a member of the chatting room");
         }
         logger.info("User {} is a member of chatting room ID: {}", user.getId(), chatRoom.getId());
 
-        // 모든 메시지 조회
-        List<MessageResponseDTO> response = messageRepository.findMessageResponsesByChatRoomId(chatRoom.getId());
-        logger.info("Found {} messages in chatting room ID: {}", response.size(), chatRoom.getId());
+        // 페이지 요청 생성
+        PageRequest pageable = PageRequest.of(0, size);
 
-        return ResponseEntity.ok(response);
+        // 커서 유무에 따라 최신 또는 이전 메시지 조회
+        Slice<MessageResponseDTO> slice = beforeId == null
+                ? messageRepository.findRecentMessageResponses(
+                chatroomId, pageable
+        )
+                : messageRepository.findOlderMessageResponses(
+                chatroomId, beforeId, pageable
+        );
+
+        List<MessageResponseDTO> items = slice.getContent();
+
+        // 다음 페이지 조회를 위한 커서 계산
+        Long nextCursor = slice.hasNext() && !items.isEmpty() ? items.get(items.size() - 1).getMessageId() : null;
+        logger.info("Message page returned; userId={} roomId={} count={} hasNext={}", userId, chatroomId, items.size(), slice.hasNext());
+
+        return ResponseEntity.ok(new CursorPageResponseDTO<>(items, nextCursor, slice.hasNext()));
     }
 
     /**
@@ -263,6 +296,6 @@ public class MessageService {
                 }
         );
 
-        return ResponseEntity.ok(new ResponseDTO("Message updated successfully"));
+        return ResponseEntity.ok(new MessageUpdateResponseDTO("Message updated successfully", snapshot));
     }
 }

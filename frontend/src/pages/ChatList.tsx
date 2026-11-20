@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -7,6 +7,12 @@ import { BiListUl, BiCommentAdd, BiLogOut } from "react-icons/bi";
 import { MdOutlineChatBubbleOutline, MdExitToApp } from "react-icons/md";
 import { FcInvite } from "react-icons/fc";
 import { FaLock } from "react-icons/fa";
+
+interface RoomPageResponse {
+  items: any[];
+  hasNext: boolean;
+  joinedRoomIds: number[];
+}
 
 // 채팅방 목록
 const ChatList = () => {
@@ -17,32 +23,62 @@ const ChatList = () => {
   const [selectedTab, setSelectedTab] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inviteCode, setInviteCode] = useState<string>("");
+  const [allPage, setAllPage] = useState(0);
+  const [myPage, setMyPage] = useState(0);
+  const [allHasNext, setAllHasNext] = useState(false);
+  const [myHasNext, setMyHasNext] = useState(false);
+  const [joinedRoomIds, setJoinedRoomIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
+  const requestVersionRef = useRef(0);
 
-  useEffect(() => {
-    fetchChatRooms();
-  }, []);
-
-  const fetchChatRooms = async () => {
+  const fetchChatRooms = useCallback(async () => {
     const token = localStorage.getItem("token");
+    const version = ++requestVersionRef.current;
+    setLoading(true);
 
     try {
-      const allChatRoomsResponse = await axios.get("/api/chatrooms", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setChatRooms(allChatRoomsResponse.data);
+      const [allResponse, myResponse] = await Promise.all([
+        axios.get<RoomPageResponse>("/api/chatrooms", {
+          params: { page: allPage, size: 20 },
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get<RoomPageResponse>("/api/chatrooms/lists", {
+          params: { page: myPage, size: 20 },
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-      const myChatRoomsResponse = await axios.get("/api/chatrooms/lists", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMyChatRooms(myChatRoomsResponse.data);
+      if (version !== requestVersionRef.current) {
+        return;
+      }
+
+      setChatRooms(allResponse.data.items);
+      setMyChatRooms(myResponse.data.items);
+      setAllHasNext(allResponse.data.hasNext);
+      setMyHasNext(myResponse.data.hasNext);
+      setJoinedRoomIds(allResponse.data.joinedRoomIds);
     } catch (error: any) {
-      Swal.fire({
-        icon: "error",
-        title: "목록 불러오기 실패",
-        text: error.response?.data?.message || error.message,
-      });
+      if (version === requestVersionRef.current) {
+        Swal.fire({
+          icon: "error",
+          title: "목록 불러오기 실패",
+          text: error.response?.data?.message || error.message,
+        });
+      }
+    } finally {
+      if (version === requestVersionRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [allPage, myPage]);
+
+  useEffect(() => {
+    void fetchChatRooms();
+
+    return () => {
+      requestVersionRef.current += 1;
+    };
+  }, [fetchChatRooms]);
 
   const handleJoinChatRoom = async (chatroom_id: number) => {
     const token = localStorage.getItem("token");
@@ -77,9 +113,7 @@ const ChatList = () => {
       setIsModalOpen(false);
       fetchChatRooms();
     } catch (error: any) {
-      const retryAfter = Number(
-        error.response?.headers?.["retry-after"]
-      );
+      const retryAfter = Number(error.response?.headers?.["retry-after"]);
 
       const message =
         error.response?.status === 429
@@ -96,32 +130,12 @@ const ChatList = () => {
     }
   };
 
-  const handleChatRoomClick = (chatroom_id: number) => {
-    const selectedChatRoom = myChatRooms.find((room) => room.chatroom_id === chatroom_id);
+  const handleChatRoomClick = (room: any) => {
+    localStorage.setItem("creator_id", room.creator_id.toString());
+    localStorage.setItem("is_private", room.is_private.toString());
+    localStorage.setItem("title", room.title.toString());
 
-    if (selectedChatRoom) {
-      localStorage.setItem("creator_id", selectedChatRoom.creator_id.toString());
-      localStorage.setItem("is_private", selectedChatRoom.is_private.toString());
-      localStorage.setItem("title", selectedChatRoom.title.toString());
-
-      navigate(`/chatroom/${chatroom_id}`);
-    } else {
-      const selectedAllChatRoom = chatRooms.find((room) => room.chatroom_id === chatroom_id);
-
-      if (selectedAllChatRoom) {
-        localStorage.setItem("creator_id", selectedAllChatRoom.creator_id.toString());
-        localStorage.setItem("is_private", selectedAllChatRoom.is_private.toString());
-        localStorage.setItem("title", selectedChatRoom.title.toString());
-
-        navigate(`/chatroom/${chatroom_id}`);
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "채팅방 로딩 실패",
-          text: "Chatting room not found",
-        });
-      }
-    }
+    navigate(`/chatroom/${room.chatroom_id}`);
   };
 
   const handleCreateChatRoom = () => {
@@ -186,76 +200,110 @@ const ChatList = () => {
       </Sidebar>
 
       <MainContent>
-        {selectedTab === "all" ? (
+        {loading ? (
+          <p>목록을 불러오는 중...</p>
+        ) : selectedTab === "all" ? (
           <>
             <h2>전체 채팅방</h2>
             <ChatRoomList>
-              {chatRooms
-                .slice()
-                .reverse()
-                .map((chatRoom) => {
-                  const isMember = myChatRooms.some((room) => room.chatroom_id === chatRoom.chatroom_id);
+              {chatRooms.map((chatRoom) => {
+                const isMember = joinedRoomIds.includes(chatRoom.chatroom_id);
 
-                  return (
-                    <ChatRoomItem
-                      key={chatRoom.chatroom_id}
-                      onClick={() => isMember && handleChatRoomClick(chatRoom.chatroom_id)}
-                      disabled={!isMember}
-                    >
-                      <ChatRoomInfo>
-                        <span>{chatRoom.title}</span>
-                        <span>
-                          인원수 : {chatRoom.current_members} / {chatRoom.max_members}
-                        </span>
-                      </ChatRoomInfo>
-                      {isMember ? (
-                        <JoinButton disabled>참여됨</JoinButton>
-                      ) : (
-                        <JoinButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleJoinChatRoom(chatRoom.chatroom_id);
-                          }}
-                        >
-                          참여
-                        </JoinButton>
-                      )}
-                    </ChatRoomItem>
-                  );
-                })}
+                return (
+                  <ChatRoomItem key={chatRoom.chatroom_id} onClick={() => isMember && handleChatRoomClick(chatRoom)} disabled={!isMember}>
+                    <ChatRoomInfo>
+                      <span>{chatRoom.title}</span>
+                      <span>
+                        인원수 : {chatRoom.current_members} / {chatRoom.max_members}
+                      </span>
+                    </ChatRoomInfo>
+                    {isMember ? (
+                      <JoinButton disabled>참여됨</JoinButton>
+                    ) : (
+                      <JoinButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJoinChatRoom(chatRoom.chatroom_id);
+                        }}
+                      >
+                        참여
+                      </JoinButton>
+                    )}
+                  </ChatRoomItem>
+                );
+              })}
             </ChatRoomList>
           </>
         ) : (
           <>
             <h2>내 채팅방</h2>
             <ChatRoomList>
-              {myChatRooms
-                .slice()
-                .reverse()
-                .map((chatRoom) => (
-                  <ChatRoomItem key={chatRoom.chatroom_id} onClick={() => handleChatRoomClick(chatRoom.chatroom_id)} disabled={false}>
-                    <ChatRoomInfo>
-                      <span>
-                        {chatRoom.is_private && <FaLock style={{ marginRight: "5px" }} />}
-                        {chatRoom.title}
-                      </span>
-                      <span>
-                        인원수 : {chatRoom.current_members}/{chatRoom.max_members}
-                      </span>
-                    </ChatRoomInfo>
-                    <JoinButton disabled>참여됨</JoinButton>
-                  </ChatRoomItem>
-                ))}
+              {myChatRooms.map((chatRoom) => (
+                <ChatRoomItem key={chatRoom.chatroom_id} onClick={() => handleChatRoomClick(chatRoom)} disabled={false}>
+                  <ChatRoomInfo>
+                    <span>
+                      {chatRoom.is_private && <FaLock style={{ marginRight: "5px" }} />}
+                      {chatRoom.title}
+                    </span>
+                    <span>
+                      인원수 : {chatRoom.current_members}/{chatRoom.max_members}
+                    </span>
+                  </ChatRoomInfo>
+                  <JoinButton disabled>참여됨</JoinButton>
+                </ChatRoomItem>
+              ))}
             </ChatRoomList>
           </>
         )}
+        {!loading && (selectedTab === "all" ? chatRooms : myChatRooms).length === 0 && <p>표시할 채팅방이 없습니다.</p>}
+
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 20 }}>
+          <button
+            type="button"
+            disabled={loading || (selectedTab === "all" ? allPage : myPage) === 0}
+            onClick={() => {
+              setLoading(true);
+
+              if (selectedTab === "all") {
+                setAllPage((page) => page - 1);
+              } else {
+                setMyPage((page) => page - 1);
+              }
+            }}
+          >
+            이전
+          </button>
+
+          <span>{(selectedTab === "all" ? allPage : myPage) + 1} 페이지</span>
+
+          <button
+            type="button"
+            disabled={loading || !(selectedTab === "all" ? allHasNext : myHasNext)}
+            onClick={() => {
+              setLoading(true);
+
+              if (selectedTab === "all") {
+                setAllPage((page) => page + 1);
+              } else {
+                setMyPage((page) => page + 1);
+              }
+            }}
+          >
+            다음
+          </button>
+        </div>
       </MainContent>
 
       {isModalOpen && (
         <ModalOverlay>
           <ModalContent>
             <h3>초대 코드 입력</h3>
-            <ModalInput type="text" placeholder="초대 코드 입력 (신규 8자리)" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} />
+            <ModalInput
+              type="text"
+              placeholder="초대 코드 입력 (신규 8자리)"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+            />
             <ModalButtons>
               <ModalButton onClick={handleJoinWithInviteCode}>확인</ModalButton>
               <ModalButton onClick={() => setIsModalOpen(false)}>취소</ModalButton>

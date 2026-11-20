@@ -1,6 +1,7 @@
 package com.example.toychat.controller;
 
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
+import com.example.toychat.dto.response.CursorPageResponseDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
 import com.example.toychat.dto.response.ResponseDTO;
 
@@ -21,11 +22,15 @@ public class MessageController {
 
     // 채팅방 메시지 조회
     @GetMapping("/{chatroom_id}")
-    public ResponseEntity<List<MessageResponseDTO>> getMessages(
+    public ResponseEntity<CursorPageResponseDTO<MessageResponseDTO>> getMessages(
             @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable("chatroom_id") Long chatroomId) {
+            @PathVariable("chatroom_id") Long chatroomId,
+            @RequestParam(value = "beforeId", required = false) Long beforeId,
+            @RequestParam(value = "size", defaultValue = "20") int size
+    ) {
         String token = authorizationHeader.substring(7); // "Bearer " 제거
-        return messageService.getMessages(token, chatroomId);
+
+        return messageService.getMessages(token, chatroomId, beforeId, size);
     }
 
     // 메시지 수정

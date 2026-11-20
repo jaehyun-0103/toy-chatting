@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import styled from "styled-components";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -14,6 +14,12 @@ interface MessageType {
   user_id: number;
   content: string;
   updated_at: string;
+}
+
+interface MessagePage {
+  items: MessageType[];
+  nextCursor: number | null;
+  hasNext: boolean;
 }
 
 const messageTimeKey = (value: string): string => {
@@ -67,12 +73,34 @@ const ChatRoom: React.FC = () => {
 
   const messageEndRef = useRef<HTMLDivElement>(null);
 
+  const messageContainerRef = useRef<HTMLDivElement>(null);
+  const roomVersionRef = useRef(0);
+  const stickToBottomRef = useRef(true);
+
+  const scrollAnchorRef = useRef<{
+    id: string;
+    offset: number;
+  } | null>(null);
+
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
   useEffect(() => {
     let active = true;
+    let initialRequested = false;
+
+    roomVersionRef.current += 1;
+    stickToBottomRef.current = true;
+    scrollAnchorRef.current = null;
 
     setMessages([]);
     setMembers([]);
     setConnected(false);
+    setNextCursor(null);
+    setHasOlder(false);
+    setLoadingOlder(false);
+    setLoading(true);
 
     const token = localStorage.getItem("token");
 
@@ -81,20 +109,30 @@ const ChatRoom: React.FC = () => {
 
       return () => {
         active = false;
+        roomVersionRef.current += 1;
       };
     }
 
-    const fetchMessagesAndMembers = async () => {
-      setLoading(true);
+    const loadInitial = async () => {
+      if (!active || initialRequested) {
+        return;
+      }
+
+      initialRequested = true;
 
       try {
-        const messagesResponse = await axios.get<MessageType[]>(`/api/messages/${roomId}`, {
+        const response = await axios.get<MessagePage>(`/api/messages/${roomId}`, {
+          params: { size: 20 },
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (active) {
-          setMessages((previous) => mergeMessages(previous, messagesResponse.data));
+        if (!active) {
+          return;
         }
+
+        setMessages((previous) => mergeMessages(previous, response.data.items));
+        setNextCursor(response.data.nextCursor);
+        setHasOlder(response.data.hasNext);
 
         const membersResponse = await axios.get<MemberType[]>(`/api/chatrooms/${roomId}/members`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -118,25 +156,24 @@ const ChatRoom: React.FC = () => {
       }
     };
 
-    void fetchMessagesAndMembers();
-
     const websocketUrl = new URL("/ws", window.location.href);
     websocketUrl.protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
     const stompClient = Stomp.client(websocketUrl.toString());
-
     stompClient.debug = () => {};
     stompClient.reconnectDelay = 0;
 
     stompClient.onWebSocketClose = () => {
       if (active) {
         setConnected(false);
+        void loadInitial();
       }
     };
 
     stompClient.onWebSocketError = () => {
       if (active) {
         setConnected(false);
+        void loadInitial();
       }
     };
 
@@ -159,6 +196,9 @@ const ChatRoom: React.FC = () => {
 
           setMessages((previous) => mergeMessages(previous, [received]));
         });
+
+        // 구독 요청을 보낸 뒤 최근 이력을 조회합니다.
+        void loadInitial();
       },
       () => {
         if (!active) {
@@ -166,6 +206,7 @@ const ChatRoom: React.FC = () => {
         }
 
         setConnected(false);
+        void loadInitial();
 
         Swal.fire({
           icon: "error",
@@ -181,13 +222,91 @@ const ChatRoom: React.FC = () => {
 
     return () => {
       active = false;
+      roomVersionRef.current += 1;
       void stompClient.deactivate();
     };
   }, [roomId]);
 
-  useEffect(() => {
-    scrollToBottom();
+  useLayoutEffect(() => {
+    const container = messageContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const anchor = scrollAnchorRef.current;
+    scrollAnchorRef.current = null;
+
+    if (anchor) {
+      const element = container.querySelector<HTMLElement>(`[data-message-id="${anchor.id}"]`);
+
+      if (element) {
+        container.scrollTop += element.getBoundingClientRect().top - container.getBoundingClientRect().top - anchor.offset;
+      }
+
+      return;
+    }
+
+    if (stickToBottomRef.current) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
+
+  const loadOlderMessages = async () => {
+    if (loadingOlder || !hasOlder || nextCursor === null) {
+      return;
+    }
+
+    const version = roomVersionRef.current;
+    const token = localStorage.getItem("token");
+    setLoadingOlder(true);
+
+    try {
+      const response = await axios.get<MessagePage>(`/api/messages/${roomId}`, {
+        params: { beforeId: nextCursor, size: 20 },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (version !== roomVersionRef.current) {
+        return;
+      }
+
+      const container = messageContainerRef.current;
+
+      if (container) {
+        const containerTop = container.getBoundingClientRect().top;
+
+        const visible = Array.from(container.querySelectorAll<HTMLElement>("[data-message-id]")).find(
+          (element) => element.getBoundingClientRect().bottom >= containerTop,
+        );
+
+        if (visible?.dataset.messageId) {
+          scrollAnchorRef.current = {
+            id: visible.dataset.messageId,
+            offset: visible.getBoundingClientRect().top - containerTop,
+          };
+        }
+      }
+
+      stickToBottomRef.current = false;
+
+      setMessages((previous) => mergeMessages(previous, response.data.items));
+      setNextCursor(response.data.nextCursor);
+      setHasOlder(response.data.hasNext);
+    } catch (error: any) {
+      if (version === roomVersionRef.current) {
+        Swal.fire({
+          icon: "error",
+          title: "이전 메시지 조회 실패",
+          text: error.response?.data?.message || error.message,
+        });
+      }
+    } finally {
+      if (version === roomVersionRef.current) {
+        setLoadingOlder(false);
+      }
+    }
+  };
 
   const handleSendMessage = () => {
     if (!connected || !client?.connected) {
@@ -215,6 +334,7 @@ const ChatRoom: React.FC = () => {
 
   const handleUpdateMessage = async () => {
     const token = localStorage.getItem("token");
+    const version = roomVersionRef.current;
     const messageId = editingMessageId;
     const nextContent = editingContent;
 
@@ -223,7 +343,10 @@ const ChatRoom: React.FC = () => {
     }
 
     try {
-      const response = await axios.put<{ message: string }>(
+      const response = await axios.put<{
+        message: string;
+        data: MessageType;
+      }>(
         `/api/messages/${roomId}/${messageId}`,
         { content: nextContent },
         {
@@ -231,24 +354,13 @@ const ChatRoom: React.FC = () => {
         },
       );
 
-      setEditingMessageId(null);
-      setEditingContent("");
-
-      // 요청자 화면은 이력 재조회로도 저장 결과를 확인합니다.
-      try {
-        const messagesResponse = await axios.get<MessageType[]>(`/api/messages/${roomId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setMessages((previous) => mergeMessages(previous, messagesResponse.data));
-      } catch {
-        Swal.fire({
-          icon: "warning",
-          title: "수정은 저장됐습니다",
-          text: "최신 메시지를 다시 불러오지 못했습니다. 방에 재접속해주세요.",
-        });
+      if (version !== roomVersionRef.current) {
         return;
       }
+
+      setMessages((previous) => mergeMessages(previous, [response.data.data]));
+      setEditingMessageId(null);
+      setEditingContent("");
 
       Swal.fire({
         icon: "success",
@@ -256,11 +368,13 @@ const ChatRoom: React.FC = () => {
         text: response.data.message,
       });
     } catch (error: any) {
-      Swal.fire({
-        icon: "error",
-        title: "메시지 수정 실패",
-        text: error.response?.data?.message || error.message,
-      });
+      if (version === roomVersionRef.current) {
+        Swal.fire({
+          icon: "error",
+          title: "메시지 수정 실패",
+          text: error.response?.data?.message || error.message,
+        });
+      }
     }
   };
 
@@ -359,14 +473,32 @@ const ChatRoom: React.FC = () => {
         </IconButtonWrapper>
       </Header>
 
-      <MessageContainer>
+      <MessageContainer
+        ref={messageContainerRef}
+        onScroll={() => {
+          const container = messageContainerRef.current;
+
+          if (container) {
+            stickToBottomRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+          }
+        }}
+      >
+        {hasOlder && (
+          <button type="button" onClick={loadOlderMessages} disabled={loading || loadingOlder}>
+            {loadingOlder ? "불러오는 중..." : "이전 메시지 더보기"}
+          </button>
+        )}
         {loading && connected ? (
           <LoadingText>로딩 중...</LoadingText>
         ) : messages.length > 0 ? (
           messages.map((msg) => (
             <React.Fragment key={msg.message_id}>
               {msg.user_id !== userId && <Username>{msg.username}</Username>}
-              <MessageWrapper key={msg.message_id} iscurrentuser={msg.user_id === userId ? "true" : undefined}>
+              <MessageWrapper
+                key={msg.message_id}
+                data-message-id={msg.message_id}
+                iscurrentuser={msg.user_id === userId ? "true" : undefined}
+              >
                 {msg.user_id === userId && visibleEditButtons[msg.message_id] && (
                   <EditButton onClick={() => handleEditMessage(msg.message_id, msg.content)}>
                     <FaEdit />

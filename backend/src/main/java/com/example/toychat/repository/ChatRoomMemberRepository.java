@@ -6,6 +6,7 @@ import com.example.toychat.entity.User;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -31,4 +32,16 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
 
     // 특정 사용자의 모든 채팅방 참여 정보 삭제
     void deleteByUser(User user);
+
+    // 주어진 채팅방 ID 목록 중 사용자가 참여한 채팅방 ID 목록 조회
+    @Query("""
+        SELECT crm.chatRoom.id
+        FROM ChatRoomMember crm
+        WHERE crm.user.id = :userId
+          AND crm.chatRoom.id IN (:roomIds)
+        """)
+    List<Long> findJoinedRoomIdsInPage(
+            @Param("userId") Long userId,
+            @Param("roomIds") List<Long> roomIds
+    );
 }

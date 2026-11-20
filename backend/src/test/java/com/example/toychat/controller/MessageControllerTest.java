@@ -1,6 +1,7 @@
 package com.example.toychat.controller;
 
 import com.example.toychat.dto.request.MessageUpdateRequestDTO;
+import com.example.toychat.dto.response.CursorPageResponseDTO;
 import com.example.toychat.dto.response.MessageResponseDTO;
 
 import com.example.toychat.dto.response.ResponseDTO;
@@ -47,16 +48,19 @@ public class MessageControllerTest {
         MessageResponseDTO message2 = new MessageResponseDTO(2L, "user2", 2L,"Hi", LocalDateTime.parse("2024-11-09T12:05:00"));
         List<MessageResponseDTO> messageList = Arrays.asList(message1, message2);
 
-        when(messageService.getMessages(any(String.class), any(Long.class)))
-                .thenReturn(ResponseEntity.ok(messageList));
+        when(messageService.getMessages(
+                anyString(), anyLong(), isNull(), eq(20)
+        )).thenReturn(ResponseEntity.ok(
+                new CursorPageResponseDTO<>(messageList, null, false)
+        ));
 
         mockMvc.perform(get("/api/messages/{chatroom_id}", chatroomId)
                         .header("Authorization", "Bearer some_valid_token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].message_id").value(1))
-                .andExpect(jsonPath("$[1].message_id").value(2));
+                .andExpect(jsonPath("$.items[0].message_id").value(1))
+                .andExpect(jsonPath("$.items[1].message_id").value(2));
 
-        verify(messageService, times(1)).getMessages(any(String.class), any(Long.class));
+        verify(messageService, times(1)).getMessages(anyString(), anyLong(), isNull(), eq(20));
     }
 
     @Test
